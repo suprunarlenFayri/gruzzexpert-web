@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import avatar, button, empty_state %}
+
+{% block title %}Поиск пользователей | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+/* ===== СТИЛИ ДЛЯ ПОИСКА ПОЛЬЗОВАТЕЛЕЙ ===== */
+
+.search-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.search-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
+}
+
+.back-btn {
+    background: var(--bg-tertiary);
+    border: none;
+    border-radius: var(--radius-full);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-decoration: none;
+    color: var(--text-primary);
+}
+
+.back-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.05);
+}
+
+.search-header-info {
+    flex: 1;
+}
+
+.search-header-info h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.search-header-info p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Форма поиска */
+.search-form-wrapper {
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-primary);
+}
+
+.search-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Контейнер для поля ввода с иконкой внутри */
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* Иконка лупы ВНУТРИ поля ввода */
+.search-icon-inside {
+    position: absolute;
+    left: 16px;
+    width: 18px;
+    height: 40px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Само поле ввода */
+.search-field {
+    flex: 1;
+    width: 100%;
+    padding: var(--space-md) var(--space-md) var(--space-md) 48px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 15px;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.search-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(43, 82, 120, 0.1);
+}
+
+.search-field::placeholder {
+    color: var(--text-muted);
+}
+
+/* Кнопка поиска */
+.search-btn {
+    padding: var(--space-md) var(--space-xl);
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    margin-left: var(--space-sm);
+    white-space: nowrap;
+}
+
+.search-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+/* Результаты поиска */
+.results-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+}
+
+.results-list {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.user-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    transition: var(--transition-normal);
+    animation: fadeInUp var(--transition-normal) backwards;
+}
+
+.user-card:hover {
+    border-color: var(--accent);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    flex: 1;
+    min-width: 0;
+}
+
+.user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-xs);
+}
+
+.user-fullname {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.user-tag {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.user-contact {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.contact-item i {
+    width: 12px;
+    height: 12px;
+}
+
+.user-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success);
+    background: rgba(34, 197, 94, 0.1);
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.chat-action {
+    flex-shrink: 0;
+}
+
+.chat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-xl);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-decoration: none;
+}
+
+.chat-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    transform: scale(1.02);
+}
+
+.chat-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.self-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.self-badge i {
+    width: 14px;
+    height: 14px;
+}
+
+.empty-search {
+    text-align: center;
+    padding: var(--space-3xl) var(--space-xl);
+    color: var(--text-secondary);
+}
+
+.empty-search i {
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-lg);
+    opacity: 0.5;
+}
+
+.empty-search h4 {
+    font-size: 18px;
+    margin-bottom: var(--space-sm);
+}
+
+.empty-search p {
+    font-size: 14px;
+}
+
+.search-hint {
+    text-align: center;
+    padding: var(--space-3xl) var(--space-xl);
+    color: var(--text-secondary);
+}
+
+.search-hint i {
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-lg);
+    opacity: 0.5;
+}
+
+.search-hint h4 {
+    font-size: 16px;
+    margin-bottom: var(--space-sm);
+}
+
+.search-hint p {
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .search-header {
+        padding: var(--space-sm) var(--space-lg);
+    }
+    
+    .search-form-wrapper {
+        padding: var(--space-md) var(--space-lg);
+    }
+    
+    .search-input-wrapper {
+        flex-direction: column;
+    }
+    
+    .search-field {
+        width: 100%;
+    }
+    
+    .search-btn {
+        width: 100%;
+        margin-left: 0;
+        margin-top: var(--space-sm);
+        justify-content: center;
+    }
+    
+    .results-wrapper {
+        padding: var(--space-md);
+    }
+    
+    .user-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-md);
+    }
+    
+    .user-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .user-name-row {
+        justify-content: center;
+    }
+    
+    .user-contact {
+        justify-content: center;
+    }
+    
+    .chat-action {
+        text-align: center;
+    }
+    
+    .chat-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-card:nth-child(1) { animation-delay: 0.05s; }
+.user-card:nth-child(2) { animation-delay: 0.10s; }
+.user-card:nth-child(3) { animation-delay: 0.15s; }
+.user-card:nth-child(4) { animation-delay: 0.20s; }
+.user-card:nth-child(5) { animation-delay: 0.25s; }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="search-container">
+    <!-- Шапка -->
+    <div class="search-header">
+        <a href="{{ url_for('chats.list') }}" class="back-btn">
+            <i data-lucide="arrow-left"></i>
+        </a>
+        <div class="search-header-info">
+            <h3>Поиск пользователей</h3>
+            <p>Найдите человека по имени, номеру или тегу</p>
+        </div>
+    </div>
+    
+    <!-- Форма поиска -->
+    <div class="search-form-wrapper">
+        <form method="get" action="{{ url_for('chats.search_users') }}" class="search-form">
+            <div class="search-input-wrapper">
+                <!-- Лупа ВНУТРИ поля ввода -->
+                <svg class="search-icon-inside" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="10" cy="10" r="7"/>
+                    <path d="M15 15L21 21"/>
+                </svg>
+                <input type="text" name="q" value="{{ query }}" placeholder="Имя, телефон или @тег" class="search-field" autocomplete="off">
+                <button type="submit" class="search-btn">Найти</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Результаты поиска -->
+    <div class="results-wrapper">
+        {% if query %}
+            {% if users %}
+                <div class="results-list">
+                    {% for item in users %}
+                    {% set user = item.user %}
+                    {% set show_phone = item.show_phone %}
+                    <div class="user-card">
+                        <div class="user-info">
+                            {{ avatar(user, 48) }}
+                            <div class="user-details">
+                                <div class="user-name-row">
+                                    <span class="user-fullname">{{ user.name }}</span>
+                                    {% if user.tag %}
+                                    <span class="user-tag">@{{ user.tag }}</span>
+                                    {% endif %}
+                                    {% if user.id == current_user.id %}
+                                    <span class="self-badge">
+                                        <i data-lucide="user-check"></i>
+                                        Это вы
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="user-contact">
+                                    {% if show_phone and user.phone %}
+                                    <span class="contact-item">
+                                        <i data-lucide="phone"></i>
+                                        {{ user.phone }}
+                                    </span>
+                                    {% endif %}
+                                    {% if user.email %}
+                                    <span class="contact-item">
+                                        <i data-lucide="mail"></i>
+                                        {{ user.email }}
+                                    </span>
+                                    {% endif %}
+                                    {% if user.role == 'worker' %}
+                                    <span class="user-rating">
+                                        <i data-lucide="star"></i>
+                                        {{ "%.1f"|format(user.rating) }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if user.id != current_user.id %}
+                        <div class="chat-action">
+                            <a href="{{ url_for('chats.create_private', user_id=user.id) }}" class="chat-btn">
+                                <i data-lucide="message-circle"></i>
+                                Написать
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-search">
+                    <i data-lucide="user-x"></i>
+                    <h4>Пользователи не найдены</h4>
+                    <p>Попробуйте поискать по другому запросу</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="search-hint">
+                <i data-lucide="search"></i>
+                <h4>Введите запрос для поиска</h4>
+                <p>Можно искать по имени, номеру телефона или тегу<br>Например: <strong>@ivan</strong> или <strong>7999</strong> или <strong>Анна</strong></p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-field');
+    if (searchInput && !searchInput.value) {
+        searchInput.focus();
+    }
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+</script>
+{% endblock %}

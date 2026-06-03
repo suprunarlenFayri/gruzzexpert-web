@@ -1,0 +1,8 @@
+[tool.pyright]
+pythonVersion = "3.12"
+# Set the pythonPlatform to "Windows" explicitly if you are on Windows
+pythonPlatform = "Windows"
+# Point pyright to your Python executable
+pythonPath = "C:/Users/roksi/AppData/Local/Programs/Python/Python312/python.exe"
+reportMissingImports = true
+reportMissingTypeStubs = false

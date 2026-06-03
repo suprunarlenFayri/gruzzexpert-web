@@ -1,0 +1,122 @@
+<div class="stats-container">
+    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="bar-chart"></i>
+        Моя статистика
+    </h4>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_tasks_for_worker }}</div>
+            <div class="stat-label">
+                <i data-lucide="clipboard-list" style="width: 14px; height: 14px;"></i>
+                Всего заявок
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number success">{{ completed_tasks_for_worker }}</div>
+            <div class="stat-label">
+                <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                Выполнено
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number warning">{{ in_progress_tasks_for_worker }}</div>
+            <div class="stat-label">
+                <i data-lucide="loader" style="width: 14px; height: 14px;"></i>
+                В работе
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number {% if missed_tasks_for_worker > 0 %}danger{% endif %}">{{ missed_tasks_for_worker }}</div>
+            <div class="stat-label">
+                <i data-lucide="x-circle" style="width: 14px; height: 14px;"></i>
+                Пропущено
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 24px;">
+        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="calendar"></i>
+            Активность по дням
+        </h4>
+        <div class="daily-stats">
+            {% for day in worker_daily_stats %}
+            <div class="daily-item">
+                <div>{{ day.date }}</div>
+                <div class="daily-count">{{ day.count }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div style="margin-top: 24px;">
+        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="star"></i>
+            Мой рейтинг
+        </h4>
+        <div style="font-size: 48px; font-weight: bold; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="star" style="width: 48px; height: 48px;"></i>
+            {{ "%.1f"|format(current_user.rating) }}
+        </div>
+        <div style="color: var(--text-secondary); margin-top: 8px;">
+            Рейтинг основан на выполненных заявках
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-grid {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.stat-card {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+}
+.stat-number {
+    font-size: 28px;
+    font-weight: bold;
+}
+.stat-number.success {
+    color: var(--success);
+}
+.stat-number.warning {
+    color: var(--warning);
+}
+.stat-number.danger {
+    color: #e74c3c;
+}
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.daily-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.daily-item {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+}
+.daily-count {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+</style>

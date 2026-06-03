@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import status_badge, task_list_assigned_avatars %}
+
+{% block title %}Мои заявки | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.content-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.content-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.content-header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.tasks-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-sm) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tasks-section-title {
+    margin: 16px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tasks-section-title:first-child {
+    margin-top: 8px;
+}
+
+.task-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    cursor: pointer;
+}
+
+.task-card:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent);
+}
+
+.task-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-title {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-compact-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    min-width: 0;
+}
+
+.task-address-snippet {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+}
+
+.task-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.task-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block sidebar_tasks %}
+{% if current_user.role in ['worker', 'brigadir'] %}
+<div class="sidebar-tasks-wrapper">
+    <div class="sidebar-group">
+        <a href="{{ url_for('tasks.my_tasks') }}" class="sidebar-group-header">
+            <div class="header-title">
+                <i data-lucide="briefcase"></i>
+                <span>Мои заявки</span>
+            </div>
+            <i data-lucide="chevron-right" style="width: 14px; height: 14px; opacity: 0.5;"></i>
+        </a>
+        <div class="sidebar-group-items">
+            {% for task in in_progress %}
+            <div class="task-mini-card" onclick="openTaskDetail({{ task.id }})">
+                <div class="task-mini-card-header">
+                    <div class="task-mini-title">{{ task.title }}</div>
+                    <div class="task-mini-price">{{ task.price }} ₽</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="sidebar-empty">Нет заявок в работе</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block main_content %}
+<div class="tasks-container">
+    <div class="content-header">
+        <h1>Мои заявки</h1>
+        <p>В работе, завершённые и пропущенные заявки</p>
+    </div>
+
+    <div class="tasks-grid">
+        <div class="tasks-section-title">В работе</div>
+        {% for task in in_progress %}
+        <div class="task-card" data-task-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }})">
+            <div class="task-main-info">
+                {% if task.task_number %}
+                <div class="task-number">№ {{ task.task_number }}</div>
+                {% endif %}
+                <div class="task-title">{{ task.title }}</div>
+                <div class="task-compact-meta">
+                    {% if task.execution_date %}
+                    <span class="meta-item">
+                        <i data-lucide="calendar"></i>
+                        {{ task.execution_date | format_local_date }}{% if task.execution_time %} {{ task.execution_time.strftime('%H:%M') }}{% endif %}
+                    </span>
+                    {% endif %}
+                    <span class="task-address-snippet" title="{{ task.address or 'Адрес уточняется' }}">
+                        {{ task.address or 'Адрес уточняется' }}
+                    </span>
+                    {{ task_list_assigned_avatars(task) }}
+                </div>
+            </div>
+            <div class="task-right">
+                <div class="task-price">{{ "{:,.0f}".format(task.price)|replace(',', ' ') }} ₽</div>
+                <div class="task-status">{{ status_badge(task.status) }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">У вас пока нет заявок в работе</div>
+        {% endfor %}
+
+        <div class="tasks-section-title">Завершённые</div>
+        {% for task in completed %}
+        <div class="task-card" data-task-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }})">
+            <div class="task-main-info">
+                {% if task.task_number %}
+                <div class="task-number">№ {{ task.task_number }}</div>
+                {% endif %}
+                <div class="task-title">{{ task.title }}</div>
+                <div class="task-compact-meta">
+                    {% if task.execution_date %}
+                    <span class="meta-item">
+                        <i data-lucide="calendar"></i>
+                        {{ task.execution_date | format_local_date }}{% if task.execution_time %} {{ task.execution_time.strftime('%H:%M') }}{% endif %}
+                    </span>
+                    {% endif %}
+                    <span class="task-address-snippet" title="{{ task.address or 'Адрес уточняется' }}">
+                        {{ task.address or 'Адрес уточняется' }}
+                    </span>
+                    {{ task_list_assigned_avatars(task) }}
+                </div>
+            </div>
+            <div class="task-right">
+                <div class="task-price">{{ "{:,.0f}".format(task.price)|replace(',', ' ') }} ₽</div>
+                <div class="task-status">{{ status_badge(task.status) }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">Нет завершённых заявок</div>
+        {% endfor %}
+
+        <div class="tasks-section-title">Пропущенные</div>
+        {% for task in failed %}
+        <div class="task-card" data-task-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }})">
+            <div class="task-main-info">
+                {% if task.task_number %}
+                <div class="task-number">№ {{ task.task_number }}</div>
+                {% endif %}
+                <div class="task-title">{{ task.title }}</div>
+                <div class="task-compact-meta">
+                    {% if task.execution_date %}
+                    <span class="meta-item">
+                        <i data-lucide="calendar"></i>
+                        {{ task.execution_date | format_local_date }}{% if task.execution_time %} {{ task.execution_time.strftime('%H:%M') }}{% endif %}
+                    </span>
+                    {% endif %}
+                    <span class="task-address-snippet" title="{{ task.address or 'Адрес уточняется' }}">
+                        {{ task.address or 'Адрес уточняется' }}
+                    </span>
+                    {{ task_list_assigned_avatars(task) }}
+                </div>
+            </div>
+            <div class="task-right">
+                <div class="task-price">{{ "{:,.0f}".format(task.price)|replace(',', ' ') }} ₽</div>
+                <div class="task-status">{{ status_badge(task.status) }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">Нет пропущенных заявок</div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function openTaskDetail(taskId) {
+    window.location.href = '{{ url_for("tasks.tasks_list") }}?open=' + taskId;
+}
+window.openTaskDetail = openTaskDetail;
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+</script>
+{% endblock %}

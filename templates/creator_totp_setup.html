@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Настройка TOTP{% endblock %}
+
+{% block main_content %}
+<div class="auth-container">
+    <div class="auth-card" style="max-width: 480px;">
+        <div class="auth-header text-center mb-4">
+            <h2 class="fw-bold">Двухфакторная аутентификация</h2>
+            <p class="text-muted small">Отсканируйте QR-код в Google Authenticator или Яндекс.Ключ</p>
+        </div>
+
+        <div class="text-center mb-3">
+            <img src="{{ qr_url }}" alt="QR TOTP" width="220" height="220" style="border-radius: 12px; background: #fff; padding: 8px;">
+        </div>
+
+        <div class="mb-3 p-3" style="background: rgba(163,112,247,0.08); border-radius: 12px; font-size: 13px; word-break: break-all;">
+            <div class="text-muted small mb-1">Секрет (ручной ввод):</div>
+            <code>{{ secret }}</code>
+        </div>
+
+        <div class="mb-4 p-3" style="background: rgba(231,76,60,0.08); border-radius: 12px;">
+            <div class="text-muted small mb-2"><strong>Резервные коды</strong> — сохраните, показываются один раз:</div>
+            <ul style="margin: 0; padding-left: 18px; font-family: monospace; font-size: 14px;">
+                {% for code in backup_codes %}
+                <li>{{ code }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <a href="{{ url_for('auth.login', mode='creator') }}" class="btn btn-glass w-100 py-3 text-center d-block">
+            Перейти к входу создателя
+        </a>
+    </div>
+</div>
+{% endblock %}

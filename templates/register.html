@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Регистрация{% endblock %}
+
+{% block main_content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header text-center mb-4">
+            {% if is_platform_bootstrap %}
+            <h2 class="fw-bold">Создатель платформы</h2>
+            <p class="text-muted small">Первый аккаунт: имя, уникальный тег и email (без телефона)</p>
+            {% else %}
+            <h2 class="fw-bold">Создать аккаунт</h2>
+            {% if invited_workspace %}
+            <p class="text-muted small">Присоединение к «{{ invited_workspace.name }}»</p>
+            {% else %}
+            <p class="text-muted small">Присоединяйтесь к GruzzExpert</p>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <form method="post" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm">
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Имя</label>
+                <input type="text" name="name" class="form-control custom-input" placeholder="Ваше имя" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Тег</label>
+                <input type="text" name="tag" id="registerTagInput" class="form-control custom-input" placeholder="username" required autocomplete="username">
+                <small class="text-muted" style="font-size: 10px; margin-left: 8px;">Уникальное имя для поиска (@username)</small>
+            </div>
+
+            {% if not is_platform_bootstrap %}
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Телефон</label>
+                <input type="tel" name="phone" class="form-control custom-input" placeholder="+7 XXX XXX XX XX" required>
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">{% if is_platform_bootstrap %}Email{% else %}Email (необязательно){% endif %}</label>
+                <input type="email" name="email" class="form-control custom-input" placeholder="example@mail.ru" {% if is_platform_bootstrap %}required{% endif %}>
+            </div>
+
+            {% if not is_platform_bootstrap and not invited_workspace %}
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Ключ директора (необязательно)</label>
+                <input type="text" name="invite_key" class="form-control custom-input" placeholder="23-значный B2B-ключ" maxlength="23" autocomplete="off">
+                <small class="text-muted" style="font-size: 10px; margin-left: 8px;">Только для регистрации директора компании</small>
+            </div>
+            {% endif %}
+
+            {% if not is_platform_bootstrap %}
+            <div class="mb-4">
+                <label class="form-label text-muted small ms-2">Пароль</label>
+                <input type="password" name="password" class="form-control custom-input" placeholder="••••••••" required>
+            </div>
+            {% endif %}
+
+            <input type="hidden" name="role" value="user">
+
+            <button type="submit" class="btn btn-glass w-100 py-3" id="registerSubmitBtn">
+                <span>{% if is_platform_bootstrap %}Создать платформу{% else %}Зарегистрироваться{% endif %}</span>
+            </button>
+            
+            <div class="text-center mt-4">
+                {% if is_platform_bootstrap %}
+                <a href="{{ url_for('auth.login', mode='creator') }}" class="link-fade small">Уже создан аккаунт? Вход создателя</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="link-fade small">Уже есть аккаунт? Войти</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top right, #1a1a1a, #0d0d0d);
+        transition: background 0.4s ease;
+    }
+
+    body.light .auth-container {
+        background: radial-gradient(circle at top right, #e0e0e0, #f5f5f5);
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 40px;
+        background: var(--card-bg) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        position: relative;
+        transition: background 0.4s ease;
+    }
+
+    body.light .auth-card {
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .auth-header h2 {
+        color: var(--text-primary) !important;
+        letter-spacing: -0.5px;
+    }
+
+    .auth-header p {
+        color: var(--text-secondary) !important;
+    }
+
+    .custom-input {
+        background: var(--input-bg) !important;
+        border: 1px solid rgba(163, 112, 247, 0.2) !important;
+        border-radius: 12px !important;
+        padding: 12px 18px !important;
+        width: 100%;
+        transition: all 0.3s ease;
+        color: var(--text-primary) !important;
+    }
+
+    .custom-input:focus {
+        background: rgba(163, 112, 247, 0.05) !important;
+        border-color: rgba(163, 112, 247, 0.5) !important;
+        box-shadow: 0 0 15px rgba(163, 112, 247, 0.1) !important;
+        outline: none;
+    }
+
+    .btn-glass {
+        background: rgba(163, 112, 247, 0.1) !important;
+        border: 1px solid rgba(163, 112, 247, 0.3) !important;
+        color: #b88fff !important;
+        backdrop-filter: blur(5px);
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        padding: 14px 20px;
+        transition: all 0.3s ease;
+        width: 100%;
+        cursor: pointer;
+        margin-top: 20px !important;
+    }
+
+    body.light .btn-glass {
+        background: rgba(163, 112, 247, 0.08) !important;
+        color: #7b43d3 !important;
+    }
+
+    .btn-glass:hover {
+        background: rgba(163, 112, 247, 0.2) !important;
+        border-color: rgba(163, 112, 247, 0.6) !important;
+        box-shadow: 0 0 20px rgba(163, 112, 247, 0.15);
+        color: #fff !important;
+        transform: translateY(-2px);
+    }
+
+    .link-fade {
+        color: var(--text-secondary) !important;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .link-fade:hover {
+        color: #a370f7;
+    }
+
+    .form-label {
+        color: var(--text-secondary) !important;
+    }
+
+    .auth-form .text-center {
+        margin-top: 20px !important;
+    }
+
+    .custom-input.tag-invalid {
+        border-color: #e74c3c !important;
+        box-shadow: 0 0 12px rgba(231, 76, 60, 0.25) !important;
+    }
+
+    .tag-availability-notice {
+        color: #e74c3c;
+        font-size: 12px;
+        margin: 6px 0 0 8px;
+    }
+</style>
+
+<script src="{{ url_for('static', filename='js/tag-availability.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('registerForm');
+    var tagInput = document.getElementById('registerTagInput');
+    if (form && tagInput && window.TagAvailability) {
+        TagAvailability.init(tagInput, form);
+    }
+});
+</script>
+{% endblock %}

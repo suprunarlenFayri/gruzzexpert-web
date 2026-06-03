@@ -1,0 +1,175 @@
+<div class="stats-container">
+    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="pie-chart"></i>
+        Общая статистика
+    </h4>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_tasks }}</div>
+            <div class="stat-label">
+                <i data-lucide="clipboard-list"></i>
+                Всего заявок
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number success">{{ completed_tasks }}</div>
+            <div class="stat-label">
+                <i data-lucide="check-circle"></i>
+                Выполнено
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number warning">{{ in_progress_tasks }}</div>
+            <div class="stat-label">
+                <i data-lucide="loader"></i>
+                В работе
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 24px;">
+        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="calendar"></i>
+            Активность по дням
+        </h4>
+        <div class="daily-stats">
+            {% for day in daily_stats %}
+            <div class="daily-item">
+                <div>{{ day.date }}</div>
+                <div class="daily-count">{{ day.count }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div style="margin-top: 24px;">
+        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="trophy"></i>
+            Рейтинг исполнителей
+        </h4>
+        <div class="table-responsive">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th><i data-lucide="user"></i> Имя</th>
+                        <th><i data-lucide="star"></i> Рейтинг</th>
+                        <th><i data-lucide="check-circle"></i> Выполнено</th>
+                        <th><i data-lucide="x-circle"></i> Пропущено</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worker in worker_stats|sort(attribute='rating', reverse=true) %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="user" style="width: 14px; height: 14px;"></i>
+                                {{ worker.name }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="rating-badge rating-{{ 'high' if worker.rating >= 80 else 'medium' if worker.rating >= 50 else 'low' }}">
+                                <i data-lucide="star" style="width: 12px; height: 12px;"></i>
+                                {{ "%.1f"|format(worker.rating) }}
+                            </span>
+                        </td>
+                        <td>{{ worker.completed }}</td>
+                        <td>{{ worker.missed }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-grid {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.stat-card {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+}
+.stat-number {
+    font-size: 28px;
+    font-weight: bold;
+}
+.stat-number.success {
+    color: var(--success);
+}
+.stat-number.warning {
+    color: var(--warning);
+}
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.daily-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.daily-item {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+}
+.daily-count {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 16px;
+}
+.stats-table {
+    min-width: 480px;
+}
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 16px;
+}
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.stats-table th,
+.stats-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.rating-badge {
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.rating-high {
+    color: #4caf50;
+}
+.rating-medium {
+    color: #f39c12;
+}
+.rating-low {
+    color: #e74c3c;
+}
+</style>

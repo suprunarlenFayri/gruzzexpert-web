@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import chat_list_grouped, chats_list_header, chat_fab %}
+
+{% block title %}Чаты{% endblock %}
+
+{% block extra %}
+<style>
+.chat-groups-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.chat-group-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-group-items {
+    display: flex;
+    flex-direction: column;
+}
+
+.chats-list-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chats-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-pin-badge {
+    display: inline-flex;
+    margin-left: 4px;
+    color: var(--text-muted);
+    vertical-align: middle;
+}
+
+.chat-pin-badge i,
+.chat-pin-badge svg {
+    width: 12px;
+    height: 12px;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="chats-list-page">
+    {{ chats_list_header() }}
+
+    <div class="chats-list-scroll">
+        {% if private_chats or group_chats or task_chats %}
+            {{ chat_list_grouped(private_chats, group_chats, task_chats, current_user) }}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <div class="empty-state-title">Нет чатов</div>
+            <div class="empty-state-description">Начните диалог с пользователем</div>
+            <a href="{{ url_for('chats.search_users') }}" class="btn btn-primary">Найти пользователя</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {{ chat_fab() }}
+</div>
+{% endblock %}
+
+{% block mobile_chat_list %}
+<div class="chats-list-page">
+    {{ chats_list_header('') }}
+
+    <div class="chats-list-scroll">
+        {% if private_chats or group_chats or task_chats %}
+            {{ chat_list_grouped(private_chats, group_chats, task_chats, current_user) }}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <div class="empty-state-title">Нет чатов</div>
+            <div class="empty-state-description">Начните диалог с пользователем</div>
+            <a href="{{ url_for('chats.search_users') }}" class="btn btn-primary">Найти пользователя</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {{ chat_fab() }}
+</div>
+{% endblock %}
+
+{% block mobile_chat_content %}
+<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
+    <div style="text-align: center;">
+        <i data-lucide="message-circle" style="width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5;"></i>
+        <p>Выберите чат из списка</p>
+        <button class="btn btn-primary" onclick="closeMobileChat()" style="margin-top: 16px;">Назад к списку</button>
+    </div>
+</div>
+{% endblock %}

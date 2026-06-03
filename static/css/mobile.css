@@ -1,0 +1,94 @@
+/**
+ * Мобильная вёрстка (браузер / PWA). Без фиксированных отступов сверху.
+ */
+@media (max-width: 768px) {
+    html,
+    body {
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden;
+        position: static !important;
+        width: 100% !important;
+        top: auto !important;
+        left: auto !important;
+    }
+
+    body {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        overflow: hidden;
+    }
+
+    .app {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .main-content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .settings-page,
+    .profile-page,
+    .profile-section,
+    .moderation-container,
+    .admin-content,
+    .statistics-page {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* Чат: колонка на весь экран, поле ввода внизу */
+    .chat-container {
+        height: calc(100vh - 60px) !important;
+        height: calc(100dvh - 60px) !important;
+        max-height: 100dvh;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1;
+        min-height: 0;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .chat-container .chat-header {
+        flex-shrink: 0;
+    }
+
+    .messages-container,
+    .chat-messages {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .chat-input-wrapper,
+    .chat-input-bar {
+        flex-shrink: 0;
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 10;
+        background: var(--bg-primary);
+        padding-bottom: calc(var(--space-md, 12px) + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .mobile-back-bar {
+        flex-shrink: 0;
+        margin: 0;
+        padding-top: 0 !important;
+    }
+}

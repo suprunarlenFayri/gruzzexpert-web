@@ -1,0 +1,888 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+.profile-page {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 24px;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.profile-section {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.profile-section-title {
+    margin: 0 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-section-title i {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+}
+
+/* Аватар */
+.profile-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.profile-avatar-container {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    border: 2px solid var(--border);
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-full);
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    border: 2px solid var(--border);
+}
+
+.profile-avatar-overlay i {
+    width: 24px;
+    height: 24px;
+    color: #fff;
+}
+
+.profile-avatar-container:hover .profile-avatar-overlay {
+    opacity: 1;
+}
+
+.profile-avatar-hint {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-avatar-hint strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.profile-avatar-hint span {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+/* Поля формы */
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.profile-fields-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.form-row-paired {
+    display: flex !important;
+    align-items: flex-end !important;
+    gap: 20px !important;
+    width: 100% !important;
+    margin-bottom: 20px !important;
+    flex-wrap: wrap;
+}
+
+.form-row-paired .form-group-custom {
+    flex: 1 1 calc(50% - 20px);
+    margin: 0 !important;
+    padding: 0 !important;
+    min-width: 200px;
+}
+
+.form-group-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.form-group-custom.full-width {
+    flex: 1 1 100%;
+}
+
+.form-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 18px;
+}
+
+.form-label-row label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 18px;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.form-group-custom > label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 18px;
+}
+
+.form-group-custom label i,
+.form-label-row label i {
+    width: 14px;
+    height: 14px;
+}
+
+.field-edit-link {
+    text-decoration: none !important;
+    color: var(--accent) !important;
+    font-size: 12px !important;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.field-edit-link:hover {
+    opacity: 0.8;
+    text-decoration: none !important;
+}
+
+.form-group-custom input.field-readonly,
+.form-group-custom input.field-readonly:focus {
+    background: #1a1a1a !important;
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+    border-color: var(--border);
+}
+
+.form-group-custom input {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+    height: 48px !important;
+}
+
+.form-group-custom input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-hint-custom {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.btn-save-profile {
+    align-self: flex-start;
+    padding: 11px 22px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s ease;
+}
+
+.btn-save-profile:hover {
+    opacity: 0.9;
+}
+
+/* Градиент */
+.gradient-block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.gradient-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-tertiary);
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.gradient-preview-box {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    background: var(--accent-gradient);
+    border: 1px solid var(--border);
+}
+
+.gradient-preview-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.gradient-preview-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.gradient-color-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.color-picker-item {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.color-picker-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.custom-color-trigger {
+    height: 44px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.custom-color-trigger:hover {
+    border-color: var(--accent);
+}
+
+.color-trigger-inner {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent);
+    pointer-events: none;
+}
+
+.presets-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gradient-presets-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.preset-btn {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.preset-btn:hover {
+    border-color: var(--accent);
+}
+
+.btn-apply-gradient {
+    align-self: flex-start;
+    padding: 11px 18px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-apply-gradient:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.profile-logout {
+    text-align: center;
+    padding: 8px 0 4px;
+}
+
+.profile-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    transition: color 0.2s ease;
+}
+
+.profile-logout-btn:hover {
+    color: var(--danger);
+}
+
+.profile-logout-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Color picker modal */
+.color-picker-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-picker-modal.active {
+    display: flex;
+}
+
+.color-picker-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.color-picker-panel {
+    position: relative;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 320px;
+    max-width: 92%;
+    overflow: hidden;
+}
+
+.color-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+
+.color-picker-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+}
+
+.color-picker-body {
+    padding: 16px;
+}
+
+.color-picker-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.color-preview-current {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.color-hex-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.color-picker-footer {
+    display: flex;
+    gap: 8px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+}
+
+.color-picker-cancel,
+.color-picker-apply {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.color-picker-apply {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+@media (max-width: 640px) {
+    .profile-page {
+        padding: 16px;
+    }
+
+    .profile-section {
+        padding: 18px 16px;
+    }
+
+    .profile-avatar-row {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .form-group-custom {
+        flex: 1 1 100%;
+    }
+
+    .gradient-color-row {
+        flex-direction: column;
+    }
+
+    .btn-save-profile,
+    .btn-apply-gradient {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<!-- Mobile back bar -->
+<div class="mobile-back-bar">
+    <a href="/chats" class="mobile-back-btn" aria-label="Назад">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 19L8 12L15 5" />
+        </svg>
+    </a>
+</div>
+
+<div class="profile-page">
+    <!-- Аватар -->
+    <section class="profile-section">
+        <h2 class="profile-section-title"><i data-lucide="image"></i> Фото профиля</h2>
+        <div class="profile-avatar-row">
+            <div class="profile-avatar-container">
+                <div class="profile-avatar">
+                    {% if current_user.avatar %}
+                        <img src="{{ url_for('uploaded_file', filename=current_user.avatar) }}" alt="{{ current_user.name }}">
+                    {% else %}
+                        {{ current_user.name[0]|upper }}
+                    {% endif %}
+                </div>
+                <form action="{{ url_for('profile.upload_avatar') }}" method="POST" enctype="multipart/form-data" id="avatar-form">
+                    <label class="profile-avatar-overlay">
+                        <i data-lucide="camera"></i>
+                        <input type="file" name="avatar" accept="image/*" hidden onchange="document.getElementById('avatar-form').submit();">
+                    </label>
+                </form>
+            </div>
+            <div class="profile-avatar-hint">
+                <strong>{{ current_user.name }}</strong>
+                <span>Наведите на фото и нажмите, чтобы загрузить новый аватар. PNG, JPG или WEBP.</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Личные данные -->
+    <section class="profile-section">
+        <h2 class="profile-section-title"><i data-lucide="user"></i> Личные данные</h2>
+        <form method="post" action="{{ url_for('profile.update') }}" class="profile-form">
+            <div class="profile-fields-row">
+                <div class="form-row-paired">
+                    <div class="form-group-custom">
+                        <label for="profile-name"><i data-lucide="user"></i> Имя</label>
+                        <input type="text" id="profile-name" name="name" value="{{ current_user.name }}" required>
+                    </div>
+                    <div class="form-group-custom">
+                        <div class="form-label-row">
+                            <label for="profile-tag">Тег</label>
+                            <a href="/settings#tag-block" class="field-edit-link">Изменить</a>
+                        </div>
+                        <input type="text" id="profile-tag" value="{{ current_user.tag or '' }}" autocomplete="off" spellcheck="false" readonly class="field-readonly" title="Тег можно изменить только через настройки безопасности">
+                    </div>
+                </div>
+                <div class="form-row-paired">
+                    <div class="form-group-custom">
+                        <label for="profile-email"><i data-lucide="mail"></i> Email</label>
+                        <input type="email" id="profile-email" name="email" value="{{ current_user.email or '' }}" placeholder="example@mail.ru">
+                    </div>
+                    <div class="form-group-custom">
+                        <div class="form-label-row">
+                            <label for="profile-phone"><i data-lucide="phone"></i> Телефон</label>
+                            <a href="/settings#phone-block" class="field-edit-link">Изменить</a>
+                        </div>
+                        <input type="tel" id="profile-phone" value="{{ current_user.phone }}" readonly class="field-readonly" title="Номер телефона можно изменить только через настройки безопасности">
+                    </div>
+                </div>
+                {% if current_user.role in ['worker', 'brigadir'] %}
+                <div class="form-group-custom full-width">
+                    <label for="profile-bank-card"><i data-lucide="credit-card"></i> Номер банковской карты</label>
+                    <input type="text" id="profile-bank-card" name="bank_card" value="{{ current_user.bank_card|decrypt_field if current_user.bank_card else '' }}" placeholder="0000 0000 0000 0000" autocomplete="off">
+                    <span class="form-hint-custom">Используется для выплат. Можно изменить в любой момент.</span>
+                </div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn-save-profile">
+                <i data-lucide="save"></i>
+                Сохранить
+            </button>
+        </form>
+    </section>
+
+    <!-- Акцентный градиент -->
+    <section class="profile-section">
+        <h2 class="profile-section-title"><i data-lucide="palette"></i> Акцентный цвет</h2>
+        <div class="gradient-block">
+            <div class="gradient-preview-card">
+                <div class="gradient-preview-box" id="gradientPreview"></div>
+                <div>
+                    <div class="gradient-preview-title">Текущая тема</div>
+                    <div class="gradient-preview-desc" id="gradientDesc">Синий градиент</div>
+                </div>
+            </div>
+
+            <div class="gradient-color-row">
+                <div class="color-picker-item">
+                    <span class="color-picker-label">Начальный цвет</span>
+                    <div class="custom-color-trigger" id="startColorTrigger" style="background: #2b5278;">
+                        <div class="color-trigger-inner"></div>
+                    </div>
+                </div>
+                <div class="color-picker-item">
+                    <span class="color-picker-label">Конечный цвет</span>
+                    <div class="custom-color-trigger" id="endColorTrigger" style="background: #2c6b98;">
+                        <div class="color-trigger-inner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="presets-title"><i data-lucide="layout-grid"></i> Быстрые пресеты</div>
+            <div class="gradient-presets-scroll">
+                <button type="button" class="preset-btn" style="background: linear-gradient(135deg, #2b5278, #2c6b98)" data-start="#2b5278" data-end="#2c6b98" data-name="Синий" title="Синий"></button>
+                <button type="button" class="preset-btn" style="background: linear-gradient(135deg, #f39c12, #e67e22)" data-start="#f39c12" data-end="#e67e22" data-name="Закат" title="Закат"></button>
+                <button type="button" class="preset-btn" style="background: linear-gradient(135deg, #27ae60, #2ecc71)" data-start="#27ae60" data-end="#2ecc71" data-name="Лес" title="Лес"></button>
+                <button type="button" class="preset-btn" style="background: linear-gradient(135deg, #8e44ad, #9b59b6)" data-start="#8e44ad" data-end="#9b59b6" data-name="Фиолетовый" title="Фиолетовый"></button>
+                <button type="button" class="preset-btn" style="background: linear-gradient(135deg, #2980b9, #3498db)" data-start="#2980b9" data-end="#3498db" data-name="Океан" title="Океан"></button>
+                <button type="button" class="preset-btn" style="background: linear-gradient(135deg, #34495e, #2c3e50)" data-start="#34495e" data-end="#2c3e50" data-name="Тёмный" title="Тёмный"></button>
+            </div>
+
+            <button type="button" id="applyGradientBtn" class="btn-apply-gradient">
+                <i data-lucide="check"></i>
+                Применить
+            </button>
+        </div>
+    </section>
+
+    <footer class="profile-logout">
+        <a href="{{ url_for('auth.logout') }}" class="profile-logout-btn">
+            <i data-lucide="log-out"></i>
+            Выйти из аккаунта
+        </a>
+    </footer>
+</div>
+
+<div id="colorPickerModal" class="color-picker-modal">
+    <div class="color-picker-overlay" onclick="closeColorPicker()"></div>
+    <div class="color-picker-panel">
+        <div class="color-picker-header">
+            <span>Выберите цвет</span>
+            <button type="button" class="color-picker-close" onclick="closeColorPicker()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="color-picker-body">
+            <div id="colorPickerContainer"></div>
+            <div class="color-picker-info">
+                <div class="color-preview-current" id="colorPreviewCurrent"></div>
+                <div style="flex:1">
+                    <span style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px;">HEX</span>
+                    <input type="text" id="colorHexValue" class="color-hex-input" readonly>
+                </div>
+            </div>
+        </div>
+        <div class="color-picker-footer">
+            <button type="button" class="color-picker-cancel" onclick="closeColorPicker()">Отмена</button>
+            <button type="button" class="color-picker-apply" id="colorPickerApply">Применить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let colorPickerInstance = null;
+let currentPickerTarget = null;
+let activeToast = null;
+
+function initColorPicker() {
+    if (colorPickerInstance || typeof iro === 'undefined') return;
+
+    colorPickerInstance = new iro.ColorPicker('#colorPickerContainer', {
+        width: 260,
+        color: '#2b5278',
+        layout: [
+            { component: iro.ui.Box },
+            { component: iro.ui.Slider, options: { sliderType: 'hue' } }
+        ],
+        borderWidth: 0,
+        handleRadius: 8,
+        handleProps: { border: '2px solid white' }
+    });
+
+    const preview = document.getElementById('colorPreviewCurrent');
+    const hexInput = document.getElementById('colorHexValue');
+
+    colorPickerInstance.on('color:change', function(color) {
+        if (preview) preview.style.backgroundColor = color.hexString;
+        if (hexInput) hexInput.value = color.hexString;
+    });
+}
+
+function openColorPicker(target) {
+    initColorPicker();
+    currentPickerTarget = target;
+    const modal = document.getElementById('colorPickerModal');
+    let hex = target.style.backgroundColor || '#2b5278';
+
+    if (hex.startsWith('rgb')) {
+        const rgb = hex.match(/\d+/g);
+        hex = `#${((1 << 24) + (parseInt(rgb[0], 10) << 16) + (parseInt(rgb[1], 10) << 8) + parseInt(rgb[2], 10)).toString(16).slice(1)}`;
+    }
+
+    if (colorPickerInstance) colorPickerInstance.color.set(hex);
+
+    const preview = document.getElementById('colorPreviewCurrent');
+    const hexInput = document.getElementById('colorHexValue');
+    if (preview) preview.style.backgroundColor = hex;
+    if (hexInput) hexInput.value = hex;
+    if (modal) modal.classList.add('active');
+}
+
+function closeColorPicker() {
+    const modal = document.getElementById('colorPickerModal');
+    if (modal) modal.classList.remove('active');
+    currentPickerTarget = null;
+}
+
+function applySelectedColor() {
+    if (colorPickerInstance && currentPickerTarget) {
+        currentPickerTarget.style.backgroundColor = colorPickerInstance.color.hexString;
+        const startTrigger = document.getElementById('startColorTrigger');
+        const endTrigger = document.getElementById('endColorTrigger');
+        if (startTrigger && endTrigger) {
+            applyGradient(startTrigger.style.backgroundColor, endTrigger.style.backgroundColor, true);
+        }
+    }
+    closeColorPicker();
+}
+
+function applyGradient(startColor, endColor, showNotification = true) {
+    document.documentElement.style.setProperty('--gradient-start', startColor);
+    document.documentElement.style.setProperty('--gradient-end', endColor);
+    document.documentElement.style.setProperty('--accent', startColor);
+    document.documentElement.style.setProperty('--accent-hover', endColor);
+
+    const preview = document.getElementById('gradientPreview');
+    if (preview) preview.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
+
+    const gradientDesc = document.getElementById('gradientDesc');
+    if (gradientDesc) {
+        const preset = document.querySelector(`.preset-btn[data-start="${startColor}"][data-end="${endColor}"]`);
+        gradientDesc.textContent = preset ? `${preset.dataset.name} градиент` : 'Пользовательский градиент';
+    }
+
+    const startTrigger = document.getElementById('startColorTrigger');
+    const endTrigger = document.getElementById('endColorTrigger');
+    if (startTrigger) startTrigger.style.background = startColor;
+    if (endTrigger) endTrigger.style.background = endColor;
+
+    localStorage.setItem('gradient_start', startColor);
+    localStorage.setItem('gradient_end', endColor);
+
+    if (showNotification) showToast('Градиент применён', 'success');
+}
+
+function showToast(message, type = 'info') {
+    if (activeToast) {
+        activeToast.remove();
+        activeToast = null;
+    }
+
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        background: ${type === 'error' ? 'var(--danger)' : 'var(--success)'};
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        pointer-events: auto;
+    `;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    activeToast = toast;
+
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+        if (activeToast === toast) activeToast = null;
+    }, 2000);
+}
+
+function loadSavedGradient() {
+    const savedStart = localStorage.getItem('gradient_start');
+    const savedEnd = localStorage.getItem('gradient_end');
+    if (savedStart && savedEnd) applyGradient(savedStart, savedEnd, false);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadSavedGradient();
+
+    const startTrigger = document.getElementById('startColorTrigger');
+    const endTrigger = document.getElementById('endColorTrigger');
+    const applyBtn = document.getElementById('applyGradientBtn');
+    const colorPickerApply = document.getElementById('colorPickerApply');
+
+    if (startTrigger) startTrigger.addEventListener('click', () => openColorPicker(startTrigger));
+    if (endTrigger) endTrigger.addEventListener('click', () => openColorPicker(endTrigger));
+    if (colorPickerApply) colorPickerApply.addEventListener('click', applySelectedColor);
+
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function() {
+            const startColor = startTrigger ? startTrigger.style.backgroundColor : '#2b5278';
+            const endColor = endTrigger ? endTrigger.style.backgroundColor : '#2c6b98';
+            applyGradient(startColor, endColor, true);
+        });
+    }
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const startColor = this.dataset.start;
+            const endColor = this.dataset.end;
+            if (!startColor || !endColor) return;
+            if (startTrigger) startTrigger.style.background = startColor;
+            if (endTrigger) endTrigger.style.background = endColor;
+            applyGradient(startColor, endColor, true);
+        });
+    });
+
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+
+window.openColorPicker = openColorPicker;
+window.closeColorPicker = closeColorPicker;
+</script>
+{% endblock %}

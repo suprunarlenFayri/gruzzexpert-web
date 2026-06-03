@@ -1,0 +1,278 @@
+{# Единое B2B-тело карточки заявки — для detail.html, чата и вкладки «Заявки» #}
+{% from "macros/ui.html" import status_badge, avatar, task_slots_badge %}
+
+{% macro detail_card_icon(name) %}
+<span class="detail-card-icon-lucide"><i data-lucide="{{ name }}"></i></span>
+{% endmacro %}
+
+{% set is_chat = is_chat|default(false) %}
+{% set exec_time = task.execution_time.strftime('%H:%M') if task.execution_time else '08:00' %}
+{% set price_display = "{:,.0f}".format((task.price or 0)|float).replace(",", " ") %}
+{% set can_take = current_user.role == 'worker' and current_user.is_verified and not user_assignment and task.status in ['recruiting', 'in_progress'] %}
+
+{% if current_user.role == 'worker' %}
+<div class="detail-card">
+    <div class="detail-card-body">
+        <h2 class="worker-task-title">{{ task.title }}</h2>
+        {% if task.description %}
+        <p class="worker-task-description">{{ task.description }}</p>
+        {% endif %}
+        <ul class="worker-meta-list">
+            {% if task.execution_date %}
+            <li class="worker-meta-row">
+                <i data-lucide="calendar"></i>
+                <span><span class="worker-meta-label">Дата выполнения:</span> {{ task.execution_date.strftime('%d.%m.%Y') }}</span>
+            </li>
+            {% endif %}
+            <li class="worker-meta-row">
+                <i data-lucide="clock"></i>
+                <span><span class="worker-meta-label">Время начала:</span> {{ exec_time }}</span>
+            </li>
+            <li class="worker-meta-row">
+                <i data-lucide="map-pin"></i>
+                <span><span class="worker-meta-label">Адрес:</span> {{ task.address if task.address else 'Уточняется у диспетчера' }}</span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('credit-card') }}
+        <h4>Оплата</h4>
+    </div>
+    <div class="detail-card-body">
+        <div class="detail-price-large">{{ price_display }} ₽</div>
+    </div>
+</div>
+
+{% else %}
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('file-text') }}
+        <h4>Основное</h4>
+    </div>
+    <div class="detail-card-body">
+        {% if task.task_number %}
+        <div class="detail-field-compact">
+            <div class="detail-value">{{ task.task_number }}</div>
+            <div class="detail-label-small">Номер заявки</div>
+        </div>
+        {% endif %}
+        <div class="detail-field-compact">
+            <div class="detail-value-large">{{ task.title }}</div>
+            <div class="detail-label-small">Название</div>
+        </div>
+        {% if task.description %}
+        <div class="detail-field-compact">
+            <div class="detail-value">{{ task.description }}</div>
+            <div class="detail-label-small">Описание</div>
+        </div>
+        {% endif %}
+        <div class="detail-time-row">
+            <i data-lucide="clock"></i>
+            <span>Время начала: <strong>{{ exec_time }}</strong></span>
+        </div>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('credit-card') }}
+        <h4>Оплата</h4>
+    </div>
+    <div class="detail-card-body">
+        <div class="detail-price-large">{{ price_display }} ₽</div>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('activity') }}
+        <h4>Статус</h4>
+    </div>
+    <div class="detail-card-body">
+        <div class="detail-status-row">
+            {{ status_badge(task.status) }}
+        </div>
+        <div class="detail-workers-meta">
+            <i data-lucide="users"></i>
+            <span>{{ task.get_assigned_workers()|length }}/{{ task.required_workers }} исполнителей</span>
+            {{ task_slots_badge(task) }}
+        </div>
+    </div>
+</div>
+
+{% if can_manage_assignments|default(false) %}
+<div class="detail-card" id="detail-assignments-card" data-task-id="{{ task.id }}">
+    <div class="detail-card-header">
+        {{ detail_card_icon('user-plus') }}
+        <h4>Назначение исполнителей</h4>
+    </div>
+    <div class="detail-card-body detail-assignments-panel">
+        {% set assigned = task.get_assigned_workers() %}
+        {% for worker in assigned %}
+        <div class="detail-assignment-row" data-user-id="{{ worker.id }}">
+            <span class="profile-trigger" data-profile-user-id="{{ worker.id }}" data-profile-context="worker" role="button" tabindex="0">{{ worker.name }}</span>
+            <button type="button" class="btn-secondary btn-sm detail-remove-worker" data-user-id="{{ worker.id }}">Снять</button>
+        </div>
+        {% else %}
+        <div class="detail-value-muted">Исполнители не назначены</div>
+        {% endfor %}
+        {% if assigned|length < task.required_workers and available_workers|default([]) %}
+        <div class="detail-assignment-picker-wrap">
+            <select class="detail-add-worker-select gruzz-native-select" aria-label="Добавить исполнителя">
+                <option value="">Выберите исполнителя…</option>
+                {% set assigned_ids = assigned|map(attribute='id')|list %}
+                {% for worker in available_workers %}
+                {% if worker.id not in assigned_ids %}
+                <option value="{{ worker.id }}">{{ worker.name }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('map-pin') }}
+        <h4>Локация</h4>
+    </div>
+    <div class="detail-card-body">
+        {% if task.city %}
+        <div class="detail-field-compact">
+            <div class="detail-value">{{ task.city.name }}</div>
+            <div class="detail-label-small">Город</div>
+        </div>
+        {% endif %}
+        {% if task.address %}
+        <div class="detail-field-compact">
+            <div class="detail-value">{{ task.address }}</div>
+            <div class="detail-label-small">Адрес</div>
+        </div>
+        {% endif %}
+        {% if task.client %}
+        <div class="detail-field-compact">
+            <div class="detail-value">{{ task.client.name }}</div>
+            <div class="detail-label-small">Клиент</div>
+        </div>
+        {% else %}
+        <div class="detail-value-muted">Клиент не указан</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('calendar') }}
+        <h4>Информация</h4>
+    </div>
+    <div class="detail-card-body">
+        <div class="detail-info-row">
+            <span class="detail-info-label">Создана:</span>
+            <span class="detail-info-value">{{ task.created_at | format_local_datetime }}</span>
+        </div>
+        {% if task.execution_date %}
+        <div class="detail-info-row">
+            <span class="detail-info-label">Дата выполнения:</span>
+            <span class="detail-info-value">{{ task.execution_date.strftime('%d.%m.%Y') }}</span>
+        </div>
+        {% endif %}
+        {% if task.completed_at %}
+        <div class="detail-info-row">
+            <span class="detail-info-label">Завершена:</span>
+            <span class="detail-info-value">{{ task.completed_at | format_local_datetime }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if is_manager and worker_tracking %}
+<div class="detail-card">
+    <div class="detail-card-header">
+        {{ detail_card_icon('users') }}
+        <h4>Исполнители</h4>
+    </div>
+    <div class="detail-card-body">
+        {% for worker in worker_tracking %}
+        <div class="detail-worker-tracking">
+            <div class="detail-worker-name profile-trigger" data-profile-user-id="{{ worker.user_id }}" data-profile-context="worker" role="button" tabindex="0" title="Профиль">{{ worker.user_name }}</div>
+            <div class="detail-worker-tracking-meta">{{ worker.tracking_summary }}</div>
+            {% if worker.work_duration %}
+            <div class="detail-worker-duration">
+                <i data-lucide="timer"></i>
+                <span>Итого: {{ worker.work_duration }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% set show_worker_actions = current_user.role == 'worker' and (
+    can_take or (is_verified_worker and user_tracking) or (task.chat_id and not is_chat)
+) %}
+
+{% if show_worker_actions %}
+<div class="detail-actions-sticky worker-actions-footer task-detail-actions-worker" id="detail-worker-actions" data-task-id="{{ task.id }}">
+    {% if can_take %}
+    <div class="gruzz-video-btn-container">
+        <button type="button" class="gruzz-video-btn" data-task-id="{{ task.id }}">
+            <div class="btn-content-wrapper">
+                <div class="state-idle">
+                    <svg class="icon-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 18H19C20.1046 18 21 17.1046 21 16V6C21 4.89543 20.1046 4 19 4H5C3.89543 4 3 4.89543 3 6V16C3 17.1046 3.89543 18 5 18Z"/>
+                        <circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+                        <path d="M3 10H10" opacity="0.5"/>
+                    </svg>
+                    <span class="main-label">Взять в работу</span>
+                </div>
+                <div class="state-animating">
+                    <video class="btn-video" playsinline muted preload="metadata" disablepictureinpicture>
+                        <source src="{{ url_for('static', filename='video/gruzz_accept.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+                <div class="state-success">
+                    <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                        <path d="M20 6L9 17L4 12" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="success-label">Заявка у вас!</span>
+                </div>
+            </div>
+        </button>
+    </div>
+    {% elif is_verified_worker and user_tracking %}
+        {% set ws = user_tracking.worker_status or 'assigned' %}
+        {% if can_reject_assignment|default(false) %}
+        <button type="button" class="worker-action-btn worker-reject-btn" data-worker-action="reject">
+            Отказаться от заявки
+        </button>
+        {% elif reject_block_reason and ws not in ['on_site', 'completed'] %}
+        <div class="worker-done-notice" title="{{ reject_block_reason }}">{{ reject_block_reason }}</div>
+        {% endif %}
+        {% if user_tracking.can_submit_confirmation %}
+        <button type="button" class="worker-action-btn btn-finish worker-submit-btn" data-worker-action="submit">
+            Отправить на подтверждение
+        </button>
+        {% elif ws == 'completed' or user_tracking.is_finished or user_tracking.awaiting_confirmation %}
+        <div class="worker-done-notice">Работа завершена, ожидайте проверку диспетчера</div>
+        {% elif ws == 'assigned' %}
+        <button type="button" class="worker-action-btn btn-route{% if not user_tracking.can_en_route %} is-disabled{% endif %}"
+                data-worker-action="route"{% if not user_tracking.can_en_route %} disabled{% endif %}>В пути</button>
+        {% elif ws == 'en_route' %}
+        <button type="button" class="worker-action-btn btn-arrive" data-worker-action="arrive">На месте</button>
+        {% elif ws == 'on_site' %}
+        <button type="button" class="worker-action-btn btn-finish" data-worker-action="finish">Закончил</button>
+        {% endif %}
+    {% elif task.chat_id and not is_chat %}
+    <a href="{{ url_for('chats.view', chat_id=task.chat_id) }}" class="btn-secondary detail-action-btn">
+        <i data-lucide="message-circle"></i> Перейти в чат
+    </a>
+    {% endif %}
+</div>
+{% endif %}

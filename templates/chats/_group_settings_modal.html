@@ -1,0 +1,43 @@
+<div id="groupSettingsModal" class="custom-modal group-settings-modal" style="display: none;" onclick="if (event.target === this) closeGroupSettingsModal()">
+    <div class="custom-modal-content group-settings-modal-content">
+        <div class="custom-modal-header">
+            <div class="group-settings-modal-title">
+                <h3 id="groupSettingsName">Группа</h3>
+                <p id="groupSettingsCount">0 участников</p>
+            </div>
+            <button type="button" class="close-modal-btn" onclick="closeGroupSettingsModal()" aria-label="Закрыть">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <div class="custom-modal-body">
+            <button type="button"
+                    id="btnAddMembers"
+                    class="btn btn-secondary group-settings-add-btn"
+                    style="display: none;"
+                    onclick="toggleGroupAddMembersPanel()">
+                <i data-lucide="user-plus"></i>
+                <span>Добавить участников</span>
+            </button>
+
+            <div id="groupAddMembersPanel" class="group-add-members-panel" style="display: none;">
+                <input type="text" id="groupAddMemberSearch" class="form-control" placeholder="Поиск по имени..." onkeyup="filterGroupAddMembers()" autocomplete="off">
+                <div id="groupAddMembersList" class="group-add-members-list"></div>
+                <button type="button" id="groupAddMembersConfirmBtn" class="btn btn-primary group-settings-add-confirm" onclick="confirmAddGroupMembers()">
+                    Добавить выбранных
+                </button>
+            </div>
+
+            <div class="group-settings-members">
+                <div class="group-settings-section-label">Участники</div>
+                <div id="groupSettingsMembersList" class="group-settings-members-list group-members-list members-list b2b-scroll-hide"></div>
+            </div>
+        </div>
+
+        <div class="custom-modal-footer group-settings-footer">
+            <button type="button" id="groupLeaveBtn" class="btn btn-danger group-leave-btn">
+                Выйти из группы
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,2999 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import avatar, message, chat_item, chat_list_grouped, chats_list_header, button %}
+
+{% macro format_file_size(n) %}
+{%- if n is none -%}
+{%- elif n < 1024 -%}{{ n|int }} Б
+{%- elif n < 1048576 -%}{{ (n / 1024)|round(1) }} КБ
+{%- else -%}{{ (n / 1048576)|round(1) }} МБ
+{%- endif -%}
+{% endmacro %}
+
+{% block title %}Чат | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+/* ===== СТИЛИ ДЛЯ ЧАТА ===== */
+
+/* Основной контейнер */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+}
+
+.chat-scroll-bottom-btn {
+    position: absolute;
+    right: 24px;
+    bottom: 96px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 20;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+.chat-scroll-bottom-btn.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.chat-scroll-bottom-btn:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-2px);
+}
+
+.chat-scroll-bottom-btn span {
+    display: flex;
+    transform: rotate(180deg);
+}
+
+/* Шапка чата */
+.chat-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
+}
+
+.chat-header-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.chat-header-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chat-header-info {
+    flex: 1;
+}
+
+.chat-header-info h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.chat-header-info p {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.chat-header-group-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+    position: relative;
+    z-index: 2;
+}
+
+.chat-header-group-trigger .chat-header-info {
+    cursor: pointer;
+}
+
+.chat-header-group-trigger:hover .chat-header-info h3 {
+    color: var(--accent);
+}
+
+.chat-header-private {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.chat-header-private:hover .chat-header-info h3 {
+    color: var(--accent);
+}
+
+.chat-header-private {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.chat-header-private:hover .chat-header-info h3 {
+    color: var(--accent);
+}
+
+.group-header-avatar i {
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+}
+
+.group-settings-modal-content {
+    max-width: 440px;
+}
+
+.group-settings-modal-title h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.group-settings-modal-title p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.group-settings-add-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.group-settings-add-btn i {
+    width: 18px;
+    height: 18px;
+}
+
+.group-add-members-panel {
+    margin-bottom: 18px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+}
+
+.group-add-members-list {
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 10px 0 12px;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.group-add-members-list::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.group-add-member-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.group-add-member-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.group-settings-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.group-settings-members-list,
+.group-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.group-settings-members-list::-webkit-scrollbar,
+.group-members-list::-webkit-scrollbar,
+.members-list::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.group-settings-member-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+}
+
+.group-settings-member-row:hover {
+    background: var(--bg-tertiary);
+}
+
+.group-settings-member-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.group-settings-member-meta .user-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.group-settings-you {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.group-role-badge {
+    display: inline-flex;
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.group-role-badge--owner {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--accent);
+}
+
+.group-role-badge--admin {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.group-kick-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s ease, background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.group-kick-btn:hover {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.group-kick-btn i {
+    width: 18px;
+    height: 18px;
+}
+
+.group-settings-footer {
+    padding-top: 0;
+}
+
+.group-leave-btn,
+.group-settings-add-confirm {
+    width: 100%;
+}
+
+.btn-danger {
+    background: var(--danger, #ef4444);
+    color: #fff;
+    border: none;
+}
+
+.btn-danger:hover {
+    filter: brightness(1.05);
+}
+
+/* Меню в шапке */
+.menu-btn-container {
+    position: relative;
+}
+
+.menu-dots-btn {
+    background: var(--bg-tertiary);
+    border: none;
+    border-radius: var(--radius-full);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.menu-dots-btn:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.chat-menu-dropdown {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    z-index: 100;
+    display: none;
+    overflow: hidden;
+}
+
+.chat-menu-dropdown.show {
+    display: block;
+    animation: dropdownFade var(--transition-fast);
+}
+
+.chat-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 13px;
+}
+
+.chat-menu-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.chat-menu-item i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Область сообщений */
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg) var(--space-xl) var(--space-sm) var(--space-xl);
+    scroll-behavior: smooth;
+}
+
+.messages-area {
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.chat-history-loader {
+    display: none;
+    max-width: 800px;
+    margin: 0 auto 8px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 6px 0;
+}
+
+.chat-history-loader.is-visible {
+    display: block;
+}
+
+/* Сообщения */
+.message {
+    display: flex;
+    margin-bottom: var(--space-md);
+    width: 100%;
+}
+
+.typing-indicator {
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: var(--space-sm) var(--space-lg);
+    animation: fadeInUp 0.3s ease;
+    display: none;
+}
+
+@keyframes messageAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.my {
+    justify-content: flex-end;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: var(--space-sm);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.message.my .message-avatar {
+    display: none;
+}
+
+/* Пузыри и мета: static/css/style.css (.chat-container …) */
+
+/* Разделитель дат */
+.date-divider,
+.chat-date-separator {
+    text-align: center;
+    margin: var(--space-lg) 0;
+    position: relative;
+}
+
+.date-divider span,
+.chat-date-separator span {
+    background: var(--bg-tertiary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--text-muted, var(--text-secondary));
+}
+
+/* Вложения */
+.attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.attachment {
+    position: relative;
+    cursor: pointer;
+}
+
+.attachment-image {
+    max-width: 150px;
+    max-height: 120px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.attachment-image:hover {
+    transform: scale(1.02);
+}
+
+.attachment-video {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: var(--radius-md);
+}
+
+.attachment-file {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.attachment-file:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.file-size {
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* ===== ПОЛЕ ВВОДА - БЕЗ ПОЛОСКИ ===== */
+.chat-input-wrapper {
+    position: sticky;
+    bottom: 0;
+    padding: var(--space-md) var(--space-xl) var(--space-xl) var(--space-xl);
+    background: var(--bg-primary);
+    flex-shrink: 0;
+    border-top: none !important;
+    box-shadow: none !important;
+}
+
+.chat-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Возвращаем оригинальную форму как прозрачный контейнер */
+#message-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: relative;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+/* Восстанавливаем ОРИГИНАЛЬНЫЙ input-wrapper из бэкапа от 18.05 в его чистом виде */
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-radius 0.1s ease;
+    position: relative;
+    z-index: 5;
+}
+
+/* Плашка ответа садится СВЕРХУ на input-wrapper */
+#chat-reply-preview {
+    display: none; /* Управляется через JS (flex) */
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg-tertiary, #2a2a2a);
+    border: 1px solid var(--border);
+    border-bottom: none; /* Чтобы не двоилась полоса с инпутом */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: -1px; /* Сшивает плашку с инпутом пиксель-в-пиксель */
+    position: relative;
+    z-index: 6;
+}
+
+/* Изменяем верхние углы ОРИГИНАЛЬНОГО инпута, когда плашка активна */
+#message-form.has-reply .input-wrapper {
+    border-top-left-radius: 0px !important;
+    border-top-right-radius: 0px !important;
+}
+
+/* Theme aliases для адаптивных цитат и оверлеев */
+:root {
+    --text-main: var(--text-primary);
+    --text-main-rgb: 255, 255, 255;
+}
+body.light {
+    --text-main: var(--text-primary);
+    --text-main-rgb: 0, 0, 0;
+}
+
+/* ==================== ЦИТАТЫ ОТВЕТОВ (ДЛЯ ОБЕИХ ТЕМ) ==================== */
+/* ==================== ФИНАЛЬНОЕ УНИЧТОЖЕНИЕ ПОЛОСОК НА ОТВЕТАХ ==================== */
+.message-reply-quote {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: rgba(255, 255, 255, 0.06) !important;
+    padding: 4px 10px 4px 12px !important;
+    margin-bottom: 6px;
+    cursor: pointer;
+    max-width: fit-content;
+    min-width: 140px;
+    user-select: none;
+    border-radius: 6px !important;
+    /* Магия: рисуем полосу через внутреннюю тень, она не ломает пиксельную сетку */
+    box-shadow: inset 3px 0 0 0 var(--accent, #ffb000) !important;
+    border: none !important;
+    outline: none !important;
+    /* ЖЕСТКО УБИРАЕМ transition! Именно из-за плавной анимации Chrome рисует мусор */
+    transition: none !important;
+    transform: translateZ(0) !important; /* Форсируем аппаратный слой */
+    background-clip: padding-box !important;
+}
+
+/* Убиваем старый псевдоэлемент, если он остался */
+.message-reply-quote::before {
+    display: none !important;
+}
+
+.message-reply-quote:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: inset 3px 0 0 0 var(--accent, #ffb000) !important;
+}
+
+/* Ник автора в цитате — делаем золотистым/желтым, чтобы он горел и читался на любом фоне */
+.reply-quote-author {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ffb000 !important;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+}
+
+/* Текст самой цитаты — делаем всегда чисто белым с легкой прозрачностью, чтобы он идеально читался и на синих, и на серых бабблах */
+.reply-quote-text {
+    font-size: 0.75rem;
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+    line-height: 1.2;
+}
+
+/* Светлая тема: тёмный полупрозрачный фон и тёмный текст в цитатах */
+body.light .message-reply-quote {
+    background: rgba(0, 0, 0, 0.06) !important;
+}
+body.light .message-reply-quote:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+body.light .reply-quote-text {
+    color: var(--text-primary, #1c1e21) !important;
+    opacity: 0.85 !important;
+}
+
+/* ==================== ИСПРАВЛЕНИЕ КАЛЕНДАРЯ И ДАТ ==================== */
+
+/* Контейнер календаря */
+.calendar-container, .datepicker-popup, .flatpickr-calendar,
+.custom-datepicker {
+    background: var(--bg-secondary, #1e1e1e) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Обычные дни в календаре — чтобы читались на темной теме */
+.calendar-day, .flatpickr-day,
+.custom-datepicker-day:not(.empty):not(.selected) {
+    color: var(--text-main, #ffffff) !important;
+    background: transparent !important;
+}
+
+/* Выбранная дата */
+.calendar-day.selected, .calendar-day.today,
+.flatpickr-day.selected,
+.custom-datepicker-day.selected {
+    background: var(--accent, #2b5278) !important;
+    color: #ffffff !important;
+    border-color: var(--accent, #2b5278) !important;
+    border-radius: 4px !important;
+}
+
+.flatpickr-day.today:not(.selected) {
+    background: transparent !important;
+    border: 1px dashed var(--accent, #2b5278) !important;
+    color: var(--text-main, var(--text-primary)) !important;
+    border-radius: 4px !important;
+}
+
+.custom-datepicker-day.today:not(.selected) {
+    background: transparent !important;
+    border: 1px dashed var(--accent) !important;
+    color: var(--text-main, var(--text-primary)) !important;
+    position: relative;
+    font-weight: bold !important;
+}
+
+/* Неактивные/соседние дни месяца */
+.calendar-day.prev-month-day, .calendar-day.next-month-day,
+.flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+    color: var(--text-muted, #666666) !important;
+    opacity: 0.5;
+}
+
+/* Названия дней недели и месяцев в шапке календаря */
+.calendar-month-label, .calendar-weekday,
+.flatpickr-current-month, .flatpickr-weekday,
+.custom-datepicker-header,
+.custom-datepicker-weekdays {
+    color: var(--text-main, #ffffff) !important;
+    font-weight: 600;
+}
+
+.chat-date-separator span {
+    color: var(--text-muted, var(--text-secondary)) !important;
+    background: var(--bg-tertiary) !important;
+}
+
+/* Анимация сочной золотистой вспышки (БЕЗ !important внутри кадров) */
+@keyframes msgFlashPulse {
+    0% { 
+        background-color: transparent; 
+        box-shadow: none;
+        transform: scale(1);
+    }
+    20% { 
+        background-color: rgba(255, 191, 0, 0.45); /* Яркий золотисто-янтарный */
+        box-shadow: 0 0 18px rgba(255, 191, 0, 0.3);
+        transform: scale(1.02); /* Легкое увеличение баббла */
+    }
+    100% { 
+        background-color: transparent; 
+        box-shadow: none;
+        transform: scale(1);
+    }
+}
+
+.message-highlight-flash {
+    /* А вот здесь !important нужен, чтобы применить саму анимацию */
+    animation: msgFlashPulse 1.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+.chat-input {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px var(--space-sm) 6px var(--space-md);
+    /* Адаптивные цвета для совместимости со светлой и темной темой */
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.03));
+    border-radius: 20px;
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+    transition: all var(--transition-fast);
+}
+
+.chat-input:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.15);
+}
+
+.chat-input textarea,
+#message-input.message-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    resize: none;
+    font-family: inherit;
+    min-height: 40px;
+    max-height: 150px;
+    line-height: 1.4;
+    overflow-y: hidden;
+    vertical-align: middle;
+    /* Стилизация скроллбара для textarea */
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 45%, transparent) transparent;
+}
+
+.chat-input textarea::-webkit-scrollbar {
+    width: 3px;
+}
+
+.chat-input textarea::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-input textarea::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text-muted) 50%, transparent);
+    border-radius: 3px;
+}
+
+.chat-input textarea::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--text-secondary) 65%, transparent);
+}
+
+.chat-input textarea::placeholder {
+    color: var(--text-muted);
+}
+
+/* ===== КАСТОМНЫЕ КНОПКИ - ФИНАЛЬНАЯ ВЕРСИЯ ===== */
+
+/* Кнопка отправки - руки с коробкой */
+.send-loader-btn {
+    background: none;
+    border: none;
+    padding: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+}
+
+.send-svg {
+    width: 34px;
+    height: 34px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Руки приподнимаются при наведении */
+.send-loader-btn:hover .loader-hands {
+    transform: translateY(-3px);
+    color: var(--accent);
+}
+
+.send-loader-btn:hover .send-svg {
+    transform: scale(1.1);
+}
+
+/* Стрелка вылетает при наведении */
+.send-loader-btn:hover .arrow-up {
+    animation: arrowFly 0.5s ease-out forwards;
+}
+
+@keyframes arrowFly {
+    0% { transform: translateY(0); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: translateY(-12px); opacity: 0; }
+}
+
+.send-loader-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Кнопка загрузки - грузовик с открывающимися воротами */
+.upload-truck-btn {
+    cursor: pointer;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border-radius: var(--radius-full);
+    background: transparent;
+}
+
+.upload-truck-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.truck-svg {
+    width: 34px;
+    height: 34px;
+    color: var(--text-secondary);
+    overflow: visible;
+    transition: all 0.3s ease;
+}
+
+/* Анимация дверей - открываются наружу */
+.door-left {
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.door-right {
+    transform-origin: right;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-truck-btn:hover .door-left {
+    transform: perspective(150px) rotateY(-110deg);
+}
+.upload-truck-btn:hover .door-right {
+    transform: perspective(150px) rotateY(110deg);
+}
+
+/* Фары - загораются зеленым (готовность к загрузке) */
+.truck-light {
+    transition: all 0.3s ease;
+}
+
+.upload-truck-btn:hover .truck-light {
+    fill: #00ff88;
+    opacity: 1;
+    filter: drop-shadow(0 0 4px #00ff88);
+}
+
+/* Плюсик внутри кузова */
+.plus-icon {
+    opacity: 0;
+    transition: opacity 0.2s ease 0.15s;
+}
+
+.upload-truck-btn:hover .plus-icon {
+    opacity: 0.8;
+}
+
+/* Анимация при клике */
+.upload-truck-btn:active .truck-svg {
+    transform: scale(0.95);
+}
+
+.send-loader-btn:active .send-svg {
+    transform: scale(0.95);
+}
+
+/* Скрываем пустой preview файлов */
+.files-preview {
+    display: none;
+}
+
+.files-preview:has(> *) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+}
+
+.attach-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.attach-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--accent);
+    transform: scale(1.05);
+}
+
+/* Кастомная кнопка отправки */
+.send-custom-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.send-custom-btn svg {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.send-custom-btn:hover svg {
+    transform: scale(1.1) translateY(-2px);
+}
+
+.send-custom-btn:active svg {
+    transform: scale(0.9);
+}
+
+.send-custom-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Модальное окно для изображений */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+/* Контекстное меню для вложений */
+.context-menu {
+    position: fixed;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    z-index: 2000;
+    min-width: 180px;
+    overflow: hidden;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 14px;
+}
+
+.context-menu-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: var(--space-xs) 0;
+}
+
+/* Список чатов в сайдбаре */
+.sidebar-chats-wrapper {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-item.is-pinned .chat-name::after {
+    content: none;
+}
+
+.chat-pin-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    color: var(--text-muted);
+    vertical-align: middle;
+}
+
+.chat-pin-badge i,
+.chat-pin-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
+.chat-pinned-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 8px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.chat-pinned-bar-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.chat-pinned-bar-main:hover {
+    opacity: 0.9;
+}
+
+.chat-pinned-bar-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.chat-pinned-bar-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.chat-pinned-bar-close i,
+.chat-pinned-bar-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.chat-pinned-bar-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.chat-pinned-bar-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+}
+
+.chat-pinned-bar-preview {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.message-text--deleted {
+    font-style: italic;
+    opacity: 0.65;
+}
+
+.chat-delete-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.chat-delete-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 280px;
+    max-width: 360px;
+    box-shadow: var(--shadow-lg);
+}
+
+.chat-delete-modal h4 {
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+
+.chat-delete-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chat-list-context-menu {
+    position: fixed;
+    z-index: 11000;
+    min-width: 200px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: var(--shadow-lg);
+}
+
+.chat-list-context-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+}
+
+.chat-list-context-menu button:hover {
+    background: var(--bg-tertiary);
+}
+
+.chat-list-context-menu button.danger {
+    color: #ef4444;
+}
+
+.pinned-section {
+    margin-bottom: var(--space-lg);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.all-chats {
+    flex: 1;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .chat-header {
+        padding: var(--space-sm) var(--space-lg);
+    }
+    
+    .chat-header-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    .messages-container {
+        padding: var(--space-md);
+    }
+    
+    .message-bubble {
+        max-width: 85%;
+    }
+    
+    .chat-input-wrapper {
+        padding: var(--space-md) var(--space-lg) var(--space-lg) var(--space-lg);
+    }
+    
+    .attachment-image,
+    .attachment-video {
+        max-width: 150px;
+        max-height: 120px;
+    }
+}
+
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ДЛЯ ЧАТА ===== */
+
+@media (max-width: 768px) {
+    .chat-container {
+        height: calc(100dvh - 60px);
+        display: flex;
+        flex-direction: column;
+        padding-top: 0;
+    }
+    
+    .chat-header {
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    .chat-header-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    .chat-header-info h3 {
+        font-size: 14px;
+    }
+    
+    .messages-container {
+        padding: var(--space-sm);
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+    
+    .message-bubble {
+        max-width: 85%;
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    .message-text {
+        font-size: 13px;
+    }
+    
+    .chat-input-wrapper {
+        flex-shrink: 0;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        background: var(--bg-primary);
+        padding: var(--space-sm) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+    }
+    
+    .chat-input textarea {
+        font-size: 14px;
+        max-height: 100px;
+    }
+    
+    .upload-truck-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .truck-svg {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .send-loader-btn {
+        padding: 4px;
+    }
+    
+    .send-svg {
+        width: 28px;
+        height: 28px;
+    }
+    
+    /* Сайдбар */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 280px;
+        height: 100%;
+        z-index: 2000;
+        transition: left 0.3s ease;
+    }
+    
+    .sidebar.open {
+        left: 0;
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1999;
+        display: none;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+}
+
+/* Анимации */
+@keyframes dropdownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Превью вложений перед отправкой — см. static/css/style.css (.file-preview-thumb) */
+
+.back-btn {
+    background: var(--bg-tertiary);
+    border: none;
+    border-radius: var(--radius-full);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-decoration: none;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.back-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.05);
+}
+
+.back-btn i,
+.back-btn [data-gruzz-icon] {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-btn [data-gruzz-icon] svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Группировка дат (Telegram-подобно) */
+.chat-date-separator {
+    text-align: center;
+    margin: 15px 0;
+}
+.chat-date-separator span {
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.08));
+    padding: 2px 12px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    color: var(--text-muted, var(--text-secondary, #666)) !important;
+}
+
+/* Вложения в пузыре (список файлов) */
+.attachments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.att-item-img img {
+    max-width: 220px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: block;
+}
+.att-item-file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+.att-file-icon-wrap {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.att-file-icon-wrap i,
+.att-file-icon-wrap svg {
+    width: 18px;
+    height: 18px;
+}
+.att-item-file .file-info {
+    flex: 1;
+    min-width: 0;
+}
+.att-item-file .file-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.3;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.att-item-file .file-meta {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    line-height: 1.2;
+}
+
+/* «Печатает…» над полем ввода */
+#typing-indicator {
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-bottom: 5px;
+    padding-left: 10px;
+}
+
+/* === Стили поиска по чату === */
+mark.search-highlight {
+    background: rgba(255, 204, 0, 0.4) !important;
+    color: #fff !important;
+    border-radius: 3px;
+    padding: 0 2px;
+    transition: background 0.2s ease;
+}
+mark.search-highlight.active-highlight {
+    background: #ffcc00 !important;
+    color: #000 !important;
+    box-shadow: 0 0 8px #ffcc00;
+}
+@keyframes bubble-search-flash {
+    0% { background-color: rgba(255, 204, 0, 0.15); }
+    100% { background-color: transparent; }
+}
+.message.flash-highlight .message-bubble {
+    animation: bubble-search-flash 1.2s ease-out;
+}
+.chat-header-action-btn:hover {
+    opacity: 1 !important;
+    transform: scale(1.05);
+}
+
+/* Коррекция размера кастомных хай-тек иконок */
+[data-gruzz-icon] {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 22px !important;
+    height: 22px !important;
+    transition: all 0.2s ease;
+}
+
+[data-gruzz-icon] svg {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+}
+
+/* Делаем кнопки управления поиском круглыми, просторными и адаптивными */
+.chat-search-controls button {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background: var(--bg-tertiary, #2a2a2a) !important;
+    border: 1px solid var(--border, #3a3a3a) !important;
+    color: #fff !important;
+    transition: all 0.2s ease !important;
+    padding: 0 !important;
+}
+
+.chat-search-controls button:hover {
+    background: var(--accent, #333) !important;
+    transform: scale(1.05);
+}
+
+#chat-search-close {
+    background: none !important;
+    border: none !important;
+    color: var(--danger, #ff4d4d) !important;
+}
+#chat-search-close:hover {
+    background: rgba(255, 77, 77, 0.1) !important;
+}
+
+/* === Стили для предпросмотра ответа (Telegram-style) === */
+.reply-preview-content {
+    border-left: 3px solid var(--accent, #3b82f6) !important;
+    padding-left: 8px !important;
+    overflow: hidden;
+    max-width: 85%;
+}
+#reply-preview-user {
+    font-size: 12px !important;
+    color: var(--accent, #3b82f6) !important;
+    font-weight: 600 !important;
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+#reply-preview-text {
+    font-size: 11px !important;
+    color: var(--text-secondary, #888) !important;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#cancel-reply-btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted, #555) !important;
+    cursor: pointer !important;
+    transition: color 0.2s;
+}
+#cancel-reply-btn:hover {
+    color: #fff !important;
+}
+
+
+/* Стили для контейнера навигации по датам */
+.chat-date-navigation {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    border-left: 1px solid var(--border, #3a3a3a) !important;
+    padding-left: 12px !important;
+    margin-left: 8px !important;
+}
+
+/* Кастомный календарь (Dropdown) — layout; цвета через блок выше */
+.custom-datepicker {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 8px !important;
+    padding: 12px !important;
+    z-index: 2000 !important;
+    width: 250px !important;
+    font-family: monospace !important;
+    user-select: none;
+}
+.custom-datepicker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+.custom-datepicker-header button {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+    width: 24px !important;
+    height: 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+    padding: 0 !important;
+}
+.custom-datepicker-header button:hover {
+    color: var(--text-main, var(--text-primary)) !important;
+    background: rgba(var(--text-main-rgb, 255, 255, 255), 0.08) !important;
+    transform: scale(1.1) !important;
+}
+.custom-datepicker-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 10px;
+    margin-bottom: 6px;
+}
+.custom-datepicker-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+.custom-datepicker-day {
+    text-align: center;
+    font-size: 12px;
+    padding: 6px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+.custom-datepicker-day:hover:not(.empty):not(.selected) {
+    background: rgba(var(--text-main-rgb, 255, 255, 255), 0.08) !important;
+}
+.custom-datepicker-day.empty {
+    cursor: default;
+    background: transparent !important;
+}
+.custom-datepicker-day.today::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    background-color: var(--accent);
+    border-radius: 50%;
+}
+
+/* Жесткий ховер для стрелочек дат */
+#chat-date-prev, #chat-date-next {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-secondary, #aaa) !important;
+    cursor: pointer !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease-in-out !important;
+    opacity: 0.6 !important;
+}
+
+#chat-date-prev:hover, #chat-date-next:hover {
+    color: var(--text-main, var(--text-primary)) !important;
+    background: rgba(var(--text-main-rgb, 255, 255, 255), 0.08) !important;
+    transform: scale(1.1) !important;
+}
+
+/* Жесткий ховер для текстовой даты */
+#chat-current-date-label {
+    font-size: 13px !important;
+    color: var(--text-secondary, #aaa) !important;
+    min-width: 95px;
+    text-align: center;
+    font-family: monospace;
+    cursor: pointer !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    display: inline-block !important;
+    user-select: none !important;
+}
+
+#chat-current-date-label:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Увеличиваем размер лупы в шапке чата */
+#chat-search-btn [data-gruzz-icon="search"] {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+#chat-search-btn {
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    transition: all 0.2s ease !important;
+}
+
+#chat-search-btn:hover {
+    background: var(--bg-tertiary, #2a2a2a) !important;
+    transform: scale(1.05);
+}
+
+/* ==================== ФИКС СВЕТЛОЙ ТЕМЫ ==================== */
+
+/* 1. Смягчаем общий фон чата, чтобы белые бабблы собеседника выделялись (Telegram style) */
+body.light .messages-container,
+body.light .chat-container {
+    background-color: #f4f5f7 !important;
+}
+
+/* 2. Текст и мета входящих — через CSS-переменные темы (style.css) */
+body.light .message.other .message-text {
+    color: var(--text-primary) !important;
+}
+
+/* 3. Время сообщения собеседника */
+body.light .message.other .message-meta {
+    color: var(--text-secondary) !important;
+}
+
+/* 4. Белый баббл собеседника с лёгкой тенью */
+body.light .message.other .message-bubble {
+    background-color: var(--bg-chat-theirs) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 5. Карточки файлов во входящих — контрастный фон и тёмный текст */
+body.light .message.other .att-item-file {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+body.light .message.other .att-item-file .file-name {
+    color: var(--text-primary) !important;
+}
+body.light .message.other .att-item-file .file-meta {
+    color: var(--text-secondary) !important;
+}
+body.light .message.other .att-file-icon-wrap {
+    color: var(--accent) !important;
+}
+
+/* 5. Бесшовная панель ввода для светлой темы */
+body.light .chat-input-wrapper {
+    background-color: #f4f5f7 !important; /* Идеально сливается с фоном чата */
+    border-top: none !important; /* Убираем линию отрыва */
+}
+
+body.light .chat-input {
+    background-color: #ffffff !important; /* Само поле ввода теперь чисто белое */
+    border: 1px solid rgba(0, 0, 0, 0.06) !important; /* Очень мягкая граница */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important; /* Легкая тень для парящего эффекта */
+}
+
+body.light .chat-input:focus-within {
+    background-color: #ffffff !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px rgba(43, 82, 120, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light .chat-input textarea {
+    color: #1c1e21 !important; /* Темный текст при наборе */
+}
+
+body.light .chat-input textarea::placeholder {
+    color: #8a8d93 !important; /* Читаемый серый плейсхолдер */
+}
+
+/* 6. Цвета иконок в панели ввода на светлой теме */
+body.light .send-loader-btn,
+body.light .upload-truck-btn,
+body.light .truck-svg {
+    color: #8a8d93 !important;
+}
+
+body.light .send-loader-btn:hover,
+body.light .upload-truck-btn:hover,
+body.light .truck-svg:hover {
+    color: var(--accent) !important;
+}
+
+/* ==================== ФИКС СШИВАНИЯ ПЛАШКИ ОТВЕТА С ИНПУТОМ ==================== */
+
+/* 1. Стилизуем плашку под новый инпут (скругление 20px, цвета совпадают) */
+#chat-reply-preview {
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-bottom: none !important; /* Убираем нижнюю границу для сшивания */
+    background: rgba(255, 255, 255, 0.03) !important;
+    margin-bottom: 0 !important;
+    transition: border-color var(--transition-fast) !important;
+}
+
+/* 2. Обрезаем верхушку инпута при ответе, чтобы убрать стык */
+#message-form.has-reply .chat-input {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-top: none !important;
+}
+
+/* 3. Окрашиваем ОБЕ части в цвет акцента при фокусе (Темная тема) */
+#message-form.has-reply:focus-within #chat-reply-preview {
+    border-color: var(--accent) !important;
+}
+
+#message-form.has-reply:focus-within .chat-input {
+    border-color: var(--accent) !important;
+    box-shadow: none !important; /* Отключаем центральное свечение, чтобы не было шва */
+}
+
+/* 4. Адаптация монолита для СВЕТЛОЙ темы */
+body.light #chat-reply-preview {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light #message-form.has-reply:focus-within #chat-reply-preview {
+    border-color: var(--accent) !important;
+}
+
+body.light #message-form.has-reply:focus-within .chat-input {
+    border-color: var(--accent) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important; /* Оставляем только мягкую тень внизу */
+}
+
+/* 5. Идеальная синхронизация цветов монолита для ТЕМНОЙ темы (под цвет шапки) */
+body:not(.light) #chat-reply-preview,
+body:not(.light) .chat-input {
+    background-color: var(--bg-secondary, #1e1e1e) !important;
+}
+
+/* ==================== ПЛАВНОЕ ПОЯВЛЕНИЕ ЧАТА ==================== */
+#messages-container {
+    opacity: 0 !important;
+    visibility: hidden !important; /* Жестко скрываем до окончания скролла */
+    transform: translateY(20px);
+    transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                visibility 0s linear 0s !important;
+}
+
+#messages-container.ready {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0);
+}
+
+/* ==================== ПРИВАТНЫЕ ЧАТЫ (TELEGRAM STYLE) ==================== */
+/* В личных переписках скрываем только имена, аватарки оставляем */
+.is-private-chat .message-sender {
+    display: none !important;
+}
+
+/* ==================== ФИКС АРТЕФАКТОВ ПРИ НАВЕДЕНИИ ==================== */
+/* Изолируем бабблы и галерею, чтобы эффекты наведения не вылезали на соседние сообщения */
+.message-bubble, .image-gallery-grid {
+    transform: translateZ(0);
+    isolation: isolate;
+}
+
+/* ==================== МОДАЛКА ПЕРЕСЫЛКИ ==================== */
+#forward-modal.custom-modal-overlay {
+    display: flex !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition: opacity 0.2s ease;
+}
+
+#forward-modal.custom-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#forward-modal .forward-modal-panel {
+    transform: translateY(10px) scale(0.98);
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    will-change: opacity, transform;
+}
+
+#forward-modal.active .forward-modal-panel {
+    transform: none;
+    opacity: 1;
+}
+
+.forward-modal-label {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.forward-search-input.b2b-input {
+    width: 100%;
+    margin-bottom: 12px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.forward-search-input.b2b-input:focus {
+    outline: none;
+    border-color: #2b5278;
+}
+
+.forward-users-list {
+    max-height: 250px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 2px;
+    scrollbar-width: none;
+}
+
+.forward-users-list::-webkit-scrollbar {
+    display: none !important;
+}
+
+.forward-users-empty {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.forward-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.forward-user-item:hover {
+    background: var(--bg-primary);
+    border-color: rgba(43, 82, 120, 0.45);
+}
+
+.forward-user-item.active {
+    border-color: #2b5278;
+    background: rgba(43, 82, 120, 0.18);
+    box-shadow: 0 0 0 1px rgba(43, 82, 120, 0.35);
+}
+
+.forward-user-avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.forward-user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.forward-user-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.forward-modal-footer {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.forward-modal-footer .forward-btn {
+    flex: 1;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    box-sizing: border-box;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.forward-btn-cancel {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border) !important;
+}
+
+.forward-btn-cancel:hover {
+    opacity: 0.9;
+}
+
+.forward-btn-submit {
+    background: #2b5278;
+    color: #fff;
+}
+
+.forward-btn-submit:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.forward-btn-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ==================== ПЕРЕСЛАННОЕ СООБЩЕНИЕ ==================== */
+.forwarded-info {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.forwarded-info span {
+    font-weight: 600;
+    color: var(--accent); /* Цвет ссылки для будущих профилей */
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.forwarded-info span:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* ==================== АКЦЕНТНЫЕ ЦВЕТА ДЛЯ ДРУГИХ ПОЛЬЗОВАТЕЛЕЙ ==================== */
+
+/* 1. Красим имя собеседника в цвет акцента (для групповых чатов и заявок) */
+.message.other .message-sender {
+    color: var(--accent) !important;
+    font-weight: 600 !important;
+}
+
+/* 2. Красим любые ссылки внутри сообщений собеседника */
+.message.other .message-text a {
+    color: var(--accent) !important;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+.message.other .message-text a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* === САЙДБАР ЗАЯВКИ ИЗ ЧАТА === */
+.task-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    z-index: 1999;
+    pointer-events: none;
+    transition: background 0.3s ease;
+}
+
+.task-sidebar-overlay.active {
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+}
+
+.side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    max-width: 100vw;
+    height: 100dvh;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    z-index: 2000;
+    transform: translate3d(100%, 0, 0);
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.05);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.side-panel::-webkit-scrollbar,
+.task-detail-container::-webkit-scrollbar,
+.detail-sidebar::-webkit-scrollbar {
+    width: 0 !important;
+    display: none !important;
+}
+
+.side-panel-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.side-panel .detail-actions-sticky .gruzz-video-btn-container,
+.side-panel .detail-actions-sticky .gruzz-video-btn,
+.side-panel .detail-actions-sticky .worker-action-btn,
+.side-panel .detail-actions-sticky [data-worker-action],
+.side-panel .detail-actions-sticky form {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.side-panel .detail-actions-sticky .gruzz-video-btn-container {
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.side-panel.active {
+    transform: translate3d(0, 0, 0);
+}
+
+.side-panel .task-detail-container {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+    padding-top: 44px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.side-panel .detail-content-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0 var(--space-xl);
+    box-sizing: border-box;
+}
+
+.side-panel .detail-content-scroll::-webkit-scrollbar,
+.side-panel .task-detail-container::-webkit-scrollbar {
+    width: 0 !important;
+    display: none !important;
+}
+
+.side-panel .detail-content,
+.side-panel .task-detail-content .detail-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.side-panel .detail-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.side-panel .btn-forward-chat-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+.task-sidebar-skeleton {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    flex: 1;
+}
+
+.task-sidebar-skeleton__header {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.task-sidebar-skeleton__avatar,
+.task-sidebar-skeleton__line,
+.task-sidebar-skeleton__card {
+    background: linear-gradient(
+        90deg,
+        var(--bg-tertiary) 0%,
+        color-mix(in srgb, var(--border) 40%, var(--bg-tertiary)) 50%,
+        var(--bg-tertiary) 100%
+    );
+    background-size: 200% 100%;
+    animation: taskSidebarShimmer 1.2s ease-in-out infinite;
+    border-radius: var(--radius-md);
+}
+
+.task-sidebar-skeleton__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.task-sidebar-skeleton__lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.task-sidebar-skeleton__line {
+    height: 12px;
+}
+
+.task-sidebar-skeleton__line--title {
+    width: 70%;
+    height: 16px;
+}
+
+.task-sidebar-skeleton__line--sub {
+    width: 45%;
+}
+
+.task-sidebar-skeleton__card {
+    height: 88px;
+}
+
+.task-sidebar-skeleton__card--tall {
+    height: 120px;
+}
+
+@keyframes taskSidebarShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.side-panel .btn-forward-chat-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+.side-panel .detail-header .back-btn,
+.side-panel .detail-header .mobile-back-btn {
+    display: none;
+}
+
+.side-panel-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 30;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+.chat-task-message-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent) !important;
+}
+
+/* 3. Акцентный фон для заглушек аватарок (где только инициалы) */
+.message-avatar:not(:has(img)),
+.chat-avatar:not(:has(img)),
+.chat-header-avatar:not(:has(img)) {
+    background-color: var(--accent) !important;
+    color: #ffffff !important;
+    /* Немного приглушаем яркость, чтобы не било по глазам, но сохраняло тон */
+    background-image: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1));
+}
+</style>
+{% endblock %}
+
+{% block sidebar_chats %}
+<div class="sidebar-chats-wrapper">
+    {{ chats_list_header('') }}
+    {{ chat_list_grouped(private_chats, group_chats, task_chats, current_user, chat.id) }}
+</div>
+{% endblock %}
+
+{% block main_content %}
+<div class="chat-container {% if chat.type == 'private' %}is-private-chat{% endif %}" data-chat-id="{{ chat.id }}">
+    <!-- Шапка чата -->
+    <div class="chat-header">
+        <a href="{{ url_for('chats.list') }}" class="back-btn" id="backBtn">
+            <span data-gruzz-icon="arrow-up" style="display: flex; transform: rotate(-90deg);"></span>
+        </a>
+        {% if chat.is_group or chat.type == 'group' %}
+        <div class="chat-header-group-trigger"
+             role="button"
+             tabindex="0"
+             onclick="openGroupSettingsModal({{ chat.id }})"
+             onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openGroupSettingsModal({{ chat.id }}); }"
+             title="Настройки группы">
+            <div class="chat-header-avatar group-header-avatar">
+                <i data-lucide="users"></i>
+            </div>
+            <div class="chat-header-info"
+                 onclick="openGroupSettingsModal({{ chat.id }})"
+                 style="cursor: pointer;"
+                 title="Настройки группы">
+                <h3>{{ chat.name or 'Группа' }}</h3>
+                <p class="chat-header-status" id="chat-header-status">{{ participants|length }} участников</p>
+                <p class="chat-header-typing" id="chat-header-typing"></p>
+            </div>
+        </div>
+        {% else %}
+        {% set other = participants|selectattr('id', 'ne', current_user.id)|first %}
+        {% if other and chat.type != 'task' %}
+        <div class="chat-header-private profile-trigger" data-profile-user-id="{{ other.id }}" data-profile-context="messenger" role="button" tabindex="0" title="Профиль">
+        {% endif %}
+        <div class="chat-header-avatar">
+            {% if chat.type == 'task' %}
+                📋
+            {% else %}
+                {% if other and other.avatar %}
+                    <img src="{{ url_for('uploaded_file', filename=other.avatar) }}" alt="{{ other.name }}">
+                {% elif other %}
+                    {{ other.name[0]|upper }}
+                {% else %}
+                    💬
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="chat-header-info">
+            <h3>
+                {% if chat.type == 'task' %}
+                    Заявка: {{ chat.task.title if chat.task else 'Заявка' }}
+                {% else %}
+                    {{ other.name if other else 'Чат #' + chat.id|string }}
+                {% endif %}
+            </h3>
+            <p class="chat-header-status" id="chat-header-status">
+                {% if chat.type == 'task' %}
+                    {{ chat.task.assignments|length }}/{{ chat.task.required_workers }} исполнителей
+                {% else %}
+                    {% set others = participants|rejectattr('id', 'equalto', current_user.id)|list %}
+                    {{ others|length }} участников
+                {% endif %}
+            </p>
+            <p class="chat-header-typing" id="chat-header-typing"></p>
+        </div>
+        {% if other and chat.type != 'task' %}
+        </div>
+        {% endif %}
+        {% endif %}
+        
+        <div class="menu-btn-container">
+            <button class="menu-dots-btn" onclick="toggleChatMenu()">
+                <i data-lucide="more-vertical"></i>
+            </button>
+            <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                <div class="chat-menu-item" onclick="pinChat({{ chat.id }})">
+                    <i data-lucide="star"></i>
+                    <span>Закрепить чат</span>
+                </div>
+                <div class="chat-menu-item" onclick="clearChatHistory({{ chat.id }})">
+                    <i data-lucide="trash-2"></i>
+                    <span>Очистить историю</span>
+                </div>
+            </div>
+        </div>
+        <button id="chat-search-btn" class="chat-header-action-btn" title="Поиск по чату" style="margin-left: auto;">
+            <span data-gruzz-icon="search" style="display: flex;"></span>
+        </button>
+    </div>
+
+    <!-- Панель поиска -->
+    <div id="chat-search-bar" class="chat-search-bar" style="display: none; align-items: center; gap: var(--space-md, 12px); padding: var(--space-sm) var(--space-xl); background: var(--bg-secondary, #1e1e1e); border-bottom: 1px solid var(--border, #2d2d2d); transition: all 0.2s ease;">
+        <input type="text" id="chat-search-input" placeholder="Поиск сообщений..." style="flex: 1; background: var(--bg-tertiary, #2a2a2a); border: 1px solid var(--border, #3a3a3a); color: var(--text-primary, #fff); padding: var(--space-xs) var(--space-md); border-radius: var(--radius-md, 8px); font-size: 14px; outline: none;">
+        
+        <!-- Date Navigation -->
+        <div class="chat-date-navigation">
+            <button id="chat-date-prev" type="button" title="Предыдущий день">
+                <span data-gruzz-icon="arrow-up" style="transform: rotate(-90deg); width: 16px; height: 16px; display: flex;"></span>
+            </button>
+            
+            <div class="chat-date-wrapper" style="position: relative; display: inline-block;">
+                <span id="chat-current-date-label">Дата</span>
+                <div id="custom-datepicker-dropdown" class="custom-datepicker" style="display: none;"></div>
+            </div>
+            
+            <button id="chat-date-next" type="button" title="Следующий день">
+                <span data-gruzz-icon="arrow-up" style="transform: rotate(90deg); width: 16px; height: 16px; display: flex;"></span>
+            </button>
+        </div>
+        
+        <div class="chat-search-controls" style="display: flex; align-items: center; gap: 10px; color: var(--text-secondary, #aaa); font-size: 14px; user-select: none;">
+            <span id="chat-search-count" style="min-width: 45px; text-align: center; font-weight: 500;">0 / 0</span>
+            <button id="chat-search-prev" type="button" style="background: var(--bg-tertiary, #2a2a2a); border: 1px solid var(--border, #3a3a3a); color: #fff; cursor: pointer; font-size: 14px; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                <span data-gruzz-icon="arrow-up" style="display: flex;"></span>
+            </button>
+            <button id="chat-search-next" type="button" style="background: var(--bg-tertiary, #2a2a2a); border: 1px solid var(--border, #3a3a3a); color: #fff; cursor: pointer; font-size: 14px; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                <span data-gruzz-icon="arrow-down" style="display: flex;"></span>
+            </button>
+            <button id="chat-search-close" type="button" style="background: none; border: none; color: var(--danger, #ff4d4d); cursor: pointer; font-size: 16px; font-weight: bold; margin-left: 4px; padding: 4px;">
+                <span data-gruzz-icon="close" style="display: flex;"></span>
+            </button>
+        </div>
+    </div>
+
+    <div id="chat-pinned-bar" class="chat-pinned-bar" hidden style="display: none;" data-pinned-id="">
+        <div class="chat-pinned-bar-main" id="chat-pinned-bar-main" role="button" tabindex="0" title="Перейти к закреплённому сообщению">
+            <i data-lucide="pin" class="chat-pinned-bar-icon"></i>
+            <div class="chat-pinned-bar-body">
+                <span class="chat-pinned-bar-label">Закреплено</span>
+                <span class="chat-pinned-bar-preview" id="chat-pinned-preview"></span>
+            </div>
+        </div>
+        <button type="button" class="chat-pinned-bar-close" id="chat-pinned-bar-close" aria-label="Открепить сообщение">
+            <i data-lucide="x"></i>
+        </button>
+    </div>
+
+    <!-- Сообщения -->
+    <div class="messages-container" id="messages-container">
+        <div id="chat-history-loader" class="chat-history-loader" aria-hidden="true">Загрузка…</div>
+        <div class="messages-area"
+             data-chat-id="{{ chat.id }}"
+             data-has-more-older="{{ 'true' if chat_has_more_older else 'false' }}"
+             data-oldest-message-id="{{ oldest_message_id or '' }}">
+            {% set date_ns = namespace(ymd='') %}
+            {% for msg in messages %}
+                {% set ymd = msg.created_at | local_date_key %}
+                {% if ymd != date_ns.ymd %}
+                    <div class="chat-date-separator"><span>{{ msg.created_at|chat_date_separator }}</span></div>
+                    {% set date_ns.ymd = ymd %}
+                {% endif %}
+
+                <div class="message {% if msg.sender_id == current_user.id %}my{% else %}other{% endif %}" id="msg-{{ msg.id }}" data-message-id="{{ msg.id }}">
+                    {% if msg.sender_id != current_user.id %}
+                    <div class="message-avatar profile-trigger" data-profile-user-id="{{ msg.sender_id }}" data-profile-context="messenger" role="button" tabindex="0" title="Профиль">
+                        {% if msg.sender.avatar %}
+                            <img src="{{ url_for('uploaded_file', filename=msg.sender.avatar) }}" alt="{{ msg.sender.name }}" style="width:100%; height:100%; object-fit:cover;">
+                        {% else %}
+                            <span>{{ (msg.sender.name or 'U')[0]|upper }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="message-bubble">
+                        {% if msg.sender_id != current_user.id %}
+                        <span class="sender-name message-sender profile-trigger" data-profile-user-id="{{ msg.sender_id }}" data-profile-context="messenger" role="button" tabindex="0" title="Профиль">{{ msg.sender.name }}</span>
+                        {% endif %}
+
+                        {% if msg.attachments %}
+                        {# === TELEGRAM-STYLE ALBUM RENDERING (Server-side) === #}
+                        {% set images = [] %}
+                        {% set videos = [] %}
+                        {% set files = [] %}
+                        {% for att in msg.attachments %}
+                            {% set fp = att.file_path | default(att.path) | default('') %}
+                            {% set ext = (fp | string).rsplit('.', 1)[-1].lower() if '.' in (fp | string) else '' %}
+                            {% if (att.file_type == 'image') or (ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif']) %}
+                                {% set _ = images.append(att) %}
+                            {% elif (att.file_type == 'video') or (ext in ['mp4', 'webm', 'mov']) %}
+                                {% set _ = videos.append(att) %}
+                            {% else %}
+                                {% set _ = files.append(att) %}
+                            {% endif %}
+                        {% endfor %}
+
+                        <div class="chat-attachments">
+                            {% if images %}
+                            <div class="image-gallery-grid" style="display: flex !important; flex-wrap: wrap !important; gap: 6px !important; max-width: 300px !important; width: 100% !important; margin-top: 8px !important; border-radius: 12px !important; overflow: hidden !important;">
+                                {% for att in images %}
+                                    {% set index = loop.index0 %}
+                                    {% set is_hidden = index >= 4 %}
+                                    
+                                    {% set raw_path = att.file_path | default(att.path) | default('') %}
+                                    {% set final_src_path = (att.thumbnail_path or att.optimized_path or raw_path) | normalize_upload %}
+                                    {% set final_full_src_path = (att.optimized_path or raw_path) | normalize_upload %}
+
+                                    {% set final_src_url = url_for('uploaded_file', filename=final_src_path) if final_src_path else '' %}
+                                    {% set final_full_src_url = url_for('uploaded_file', filename=final_full_src_path) if final_full_src_path else '' %}
+
+                                    <div class="attachment-item image-item" style="{% if is_hidden %}display: none !important;{% else %}display: block !important;{% endif %} position: relative !important; flex: 1 1 calc(50% - 6px) !important; min-width: 130px !important; max-width: 145px !important; height: 110px !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; border-radius: 6px !important;">
+                                        <a href="{{ final_full_src_url }}" class="chat-image-link" style="display: block !important; width: 100% !important; height: 100% !important;">
+                                            <img src="{{ final_src_url }}" alt="Изображение" loading="lazy" onerror="this.src='{{ final_full_src_url }}'" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;">
+                                            
+                                            {% if index == 3 and images|length > 4 %}
+                                            <div class="more-images-overlay" style="position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background: rgba(0,0,0,0.6) !important; backdrop-filter: blur(4px) !important; display: flex !important; justify-content: center !important; align-items: center !important; border-radius: 6px !important; pointer-events: none !important;">
+                                                <span style="color: #ffffff !important; font-size: 22px !important; font-weight: 700 !important;">+{{ images|length - 4 }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if videos %}
+                            <div class="chat-videos-list">
+                                {% for att in videos %}
+                                    {% set video_url = url_for('uploaded_file', filename=(att.file_path or att.path or '') | normalize_upload) %}
+                                    <div class="chat-video-preview message-video" data-video-url="{{ video_url }}" onclick="playChatVideo(this.dataset.videoUrl)">
+                                        <video class="message-video-player" src="{{ video_url }}" preload="metadata" muted playsinline></video>
+                                        <div class="video-play-overlay">
+                                            <i data-lucide="play"></i>
+                                        </div>
+                                        <div class="video-meta-info">
+                                            <span class="video-name">{{ att.filename }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {# Render non-image, non-video files #}
+                            {% for att in files %}
+                                <a href="{{ url_for('chats.download_attachment', attachment_id=att.id) }}" class="att-item-file" download>
+                                    <div class="att-file-icon-wrap"><i data-lucide="file-text"></i></div>
+                                    <div class="file-info">
+                                        <div class="file-name">{{ att.filename }}</div>
+                                        {% if att.file_size is not none %}
+                                        <div class="file-meta">{{ format_file_size(att.file_size) }}</div>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if msg.parent_id %}
+                        <div class="message-reply-quote" onclick="window.scrollToMessage('{{ msg.parent_id }}', event)">
+                            <div class="reply-quote-author">
+                                {{ msg.parent.sender.name if msg.parent and msg.parent.sender else 'Пользователь' }}
+                            </div>
+                            <div class="reply-quote-text">
+                                {% if msg.parent %}
+                                    {% set parent_quote = msg.parent.plaintext_text|default('', true)|trim %}
+                                    {{ parent_quote if parent_quote and not parent_quote.startswith('enc:') else 'Вложение...' }}
+                                {% else %}
+                                    Сообщение...
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if msg.task_id %}
+                        <div class="chat-task-message-card" onclick="openGlobalTaskSidebar({{ msg.task_id }})" style="background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-md); max-width: 300px; cursor: pointer; transition: transform 0.2s, border-color 0.2s;">
+                            <div class="chat-task-title" style="font-size: var(--font-sm); font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                {% if current_user.role == 'worker' %}
+                                    Новая заявка
+                                {% else %}
+                                    Заявка №{{ msg.task_id }}
+                                {% endif %}
+                            </div>
+                            <div style="font-size: var(--font-xs); color: var(--text-secondary); margin-bottom: 6px;">
+                                {{ msg.task.address if msg.task else 'Посмотреть локацию и детали' }}
+                            </div>
+                            <div class="chat-task-price" style="font-size: var(--font-md); font-weight: 700; color: #4ade80;">
+                                {{ "{:,.0f}".format(msg.task.price or 0).replace(",", " ") if msg.task else '0' }} ₽
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if msg.deleted_for_all %}
+                        <div class="message-text message-text--deleted">Сообщение удалено</div>
+                        {% elif msg.plaintext_text|trim %}
+                        <div class="message-text">{{ msg.plaintext_text }}</div>
+                        {% endif %}
+
+                        <div class="message-meta">
+                            {{ msg.created_at | format_local_time }}
+                            {% if msg.sender_id == current_user.id %}
+                            <i class="check-icon">{% if msg.is_read %}✓✓{% else %}✓{% endif %}</i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            <div id="message-end"></div>
+        </div>
+    </div>
+
+    <button type="button" id="chat-scroll-bottom-btn" class="chat-scroll-bottom-btn" aria-label="Прокрутить вниз" title="Вниз">
+        <span data-gruzz-icon="arrow-up"></span>
+    </button>
+
+    <!-- Поле ввода -->
+    <div class="chat-input-wrapper">
+        <form method="post" action="{{ url_for('chats.send', chat_id=chat.id) }}" class="chat-form" id="message-form" enctype="multipart/form-data">
+            <div id="chat-reply-preview">
+                <div class="reply-preview-content" style="border-left: 3px solid var(--accent, #3b82f6) !important; padding-left: 8px; overflow: hidden; max-width: 85%; text-align: left;">
+                    <div id="reply-preview-user" style="font-size: 11px; color: var(--accent, #3b82f6) !important; font-weight: 600; line-height: 1.2; margin-bottom: 1px;">Автор</div>
+                    <div id="reply-preview-text" style="font-size: 11px; color: var(--text-secondary, #888); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Текст...</div>
+                </div>
+                <button id="cancel-reply-btn" type="button" style="background: transparent !important; border: none !important; color: var(--text-muted, #555) !important; cursor: pointer !important; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0;">
+                    <span data-gruzz-icon="close" style="width: 12px; height: 12px;"></span>
+                </button>
+            </div>
+
+            <div class="files-preview file-preview" id="files-preview"></div>
+            
+            <div class="chat-input input-wrapper">
+                <!-- ГРУЗОВИК - задние ворота с петлями -->
+                <div class="upload-truck-btn" id="attach-btn">
+                    <input type="file" id="file-input" name="files" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="truck-svg">
+                        <rect x="3" y="4" width="18" height="14" rx="1.5" stroke="currentColor" stroke-width="2.5"/>
+                        <circle class="truck-light" cx="6" cy="6" r="1.2" fill="currentColor" opacity="0.4"/>
+                        <circle class="truck-light" cx="18" cy="6" r="1.2" fill="currentColor" opacity="0.4"/>
+                        <path d="M12 8V14M9 11H15" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+                        
+                        <!-- Левая дверь с петлями -->
+                        <g class="door door-left">
+                            <rect x="4" y="5" width="8" height="12" fill="var(--bg-secondary)" stroke="currentColor" stroke-width="2"/>
+                            <line x1="5" y1="8" x2="7" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                            <line x1="5" y1="14" x2="7" y2="14" stroke="currentColor" stroke-width="1.5"/>
+                        </g>
+                        <!-- Правая дверь с петлями -->
+                        <g class="door door-right">
+                            <rect x="12" y="5" width="8" height="12" fill="var(--bg-secondary)" stroke="currentColor" stroke-width="2"/>
+                            <line x1="17" y1="8" x2="19" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                            <line x1="17" y1="14" x2="19" y2="14" stroke="currentColor" stroke-width="1.5"/>
+                        </g>
+                    </svg>
+                </div>
+                
+                <textarea name="text" class="message-input" id="message-input" placeholder="Сообщение..." autocomplete="off" rows="1"></textarea>
+                
+                <!-- ГРУЗЧИК - руки держат коробку -->
+                <button type="submit" class="send-loader-btn" id="send-btn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="send-svg">
+                        <!-- Коробка -->
+                        <rect x="5" y="5" width="14" height="10" rx="2" fill="var(--accent)" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M5 6L12 10.5L19 6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        
+                        <!-- Руки снизу -->
+                        <path class="loader-hands" d="M4 18C4 18 6 16 8 16H16C18 16 20 18 20 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        
+                        <!-- Стрелка отправки -->
+                        <path class="arrow-up" d="M12 12V3M12 3L9 6M12 3L15 6" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" opacity="0"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Контекстное меню для вложений -->
+<div id="attachment-context-menu" class="context-menu" style="display: none;">
+    <div class="context-menu-item" onclick="deleteAttachmentFromMenu()">
+        <i data-lucide="trash-2"></i>
+        <span>Удалить</span>
+    </div>
+    <div class="context-menu-item" onclick="saveAttachment()">
+        <i data-lucide="download"></i>
+        <span>Сохранить</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" onclick="addCaptionToAttachment()">
+        <i data-lucide="edit-3"></i>
+        <span>Добавить подпись</span>
+    </div>
+</div>
+
+<!-- Модальное окно «Переслать сообщение» -->
+<div id="forward-modal" class="custom-modal-overlay b2b-modal-overlay" hidden>
+    <div class="modal-body-wrapper forward-modal-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Переслать куда</h3>
+        </div>
+        <div class="modal-content">
+            <p class="forward-modal-label">Выберите получателей</p>
+            <input type="text" id="forward-search-input" placeholder="Поиск получателя..." class="b2b-input forward-search-input" autocomplete="off">
+            <div id="forward-users-list" class="forward-users-list" role="listbox" aria-label="Получатели" aria-multiselectable="true"></div>
+        </div>
+        <div class="modal-footer forward-modal-footer">
+            <button type="button" class="forward-btn forward-btn-cancel" onclick="ChatUI.closeForwardModal()">Отмена</button>
+            <button type="button" class="forward-btn forward-btn-submit" id="forward-submit-btn" disabled>Переслать</button>
+        </div>
+    </div>
+</div>
+
+{% if chat.is_group or chat.type == 'group' %}
+{% include 'chats/_group_settings_modal.html' %}
+{% endif %}
+
+<div class="task-sidebar-overlay" id="task-sidebar-overlay"></div>
+<aside class="side-panel" id="global-task-side-panel">
+    <button type="button" class="side-panel-close" aria-label="Закрыть">
+        <i data-lucide="x"></i>
+    </button>
+    <div class="side-panel-body"></div>
+</aside>
+
+<!-- Передача конфигурации из Python в JS -->
+<script>
+    window.ChatConfig = {
+        currentUserId: {{ current_user.id|tojson }},
+        currentUserName: {{ current_user.name|tojson }},
+        chatId: {{ chat.id|tojson }},
+        isGroup: {{ (chat.is_group or chat.type == 'group')|tojson }},
+        canManageGroup: {{ can_manage_group|tojson }},
+        socketUrl: location.protocol + '//' + document.domain + ':' + location.port
+    };
+    window.currentChatId = window.ChatConfig.chatId;
+
+    // Цели пересылки: контакты ∪ личные чаты (не вся база)
+    window.ForwardTargetsList = {{ forward_targets|tojson }};
+    window.UserChatsList = window.ForwardTargetsList;
+</script>
+
+<script src="{{ url_for('static', filename='js/task-worker-actions.js') }}?v=1.5"></script>
+<script>
+function taskSidebarSkeletonHtml() {
+    return '<div class="task-sidebar-skeleton">' +
+        '<div class="task-sidebar-skeleton__header">' +
+            '<div class="task-sidebar-skeleton__avatar"></div>' +
+            '<div class="task-sidebar-skeleton__lines">' +
+                '<div class="task-sidebar-skeleton__line task-sidebar-skeleton__line--title"></div>' +
+                '<div class="task-sidebar-skeleton__line task-sidebar-skeleton__line--sub"></div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="task-sidebar-skeleton__card"></div>' +
+        '<div class="task-sidebar-skeleton__card task-sidebar-skeleton__card--tall"></div>' +
+        '<div class="task-sidebar-skeleton__card"></div>' +
+    '</div>';
+}
+
+function initDetailWorkerActions(root) {
+    var actionsRoot = (root || document).querySelector('#detail-worker-actions');
+    var taskId = actionsRoot && actionsRoot.dataset.taskId;
+    if (typeof bindDetailPanelInteractions === 'function') {
+        bindDetailPanelInteractions(taskId, root || document);
+    }
+}
+
+function injectTaskDetailStyles(doc) {
+    var bucket = document.getElementById('task-detail-embed-styles');
+    if (!bucket) {
+        bucket = document.createElement('div');
+        bucket.id = 'task-detail-embed-styles';
+        bucket.hidden = true;
+        document.body.appendChild(bucket);
+    }
+    bucket.innerHTML = '';
+    doc.querySelectorAll('style').forEach(function(styleNode) {
+        bucket.appendChild(styleNode.cloneNode(true));
+    });
+}
+
+function getTaskSidebarElements() {
+    return {
+        panel: document.getElementById('global-task-side-panel'),
+        overlay: document.getElementById('task-sidebar-overlay'),
+        body: document.querySelector('#global-task-side-panel .side-panel-body'),
+        closeBtn: document.querySelector('#global-task-side-panel .side-panel-close')
+    };
+}
+
+function bindTaskSidebarDismissHandlers() {
+    var els = getTaskSidebarElements();
+    if (!els.panel || els.panel.dataset.dismissBound === '1') return;
+    els.panel.dataset.dismissBound = '1';
+
+    if (els.closeBtn) {
+        els.closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeGlobalTaskSidebar();
+        });
+    }
+    if (els.overlay) {
+        els.overlay.addEventListener('click', function(e) {
+            if (e.target === els.overlay) {
+                closeGlobalTaskSidebar();
+            }
+        });
+    }
+}
+
+async function openGlobalTaskSidebar(taskId) {
+    var els = getTaskSidebarElements();
+    if (!els.panel || !els.body) return;
+
+    els.panel.classList.add('active');
+    if (els.overlay) els.overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    els.body.innerHTML = taskSidebarSkeletonHtml();
+    if (typeof refreshIcons === 'function') refreshIcons();
+
+    try {
+        var response = await fetch('/tasks/detail/' + taskId + '?is_chat=1');
+        if (!response.ok) throw new Error('load failed');
+        var html = await response.text();
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        injectTaskDetailStyles(doc);
+
+        var extracted = doc.querySelector('.task-detail-container');
+        els.body.innerHTML = extracted ? extracted.outerHTML : html;
+
+        var contentContainer = els.body.querySelector('.task-detail-container') || els.body;
+        window.currentTaskId = taskId;
+        if (typeof bindDetailPanelInteractions === 'function') {
+            bindDetailPanelInteractions(taskId, contentContainer);
+        } else {
+            initDetailWorkerActions(contentContainer);
+        }
+        if (typeof refreshIcons === 'function') refreshIcons();
+    } catch (err) {
+        els.body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger);">Ошибка загрузки</div>';
+        if (typeof refreshIcons === 'function') refreshIcons();
+    }
+}
+
+function closeGlobalTaskSidebar() {
+    var els = getTaskSidebarElements();
+    if (els.panel) {
+        els.panel.classList.remove('active');
+    }
+    if (els.body) {
+        els.body.innerHTML = '';
+    }
+    if (els.overlay) {
+        els.overlay.classList.remove('active');
+    }
+    document.body.style.overflow = '';
+}
+
+window.openGlobalTaskSidebar = openGlobalTaskSidebar;
+window.closeGlobalTaskSidebar = closeGlobalTaskSidebar;
+window.initDetailWorkerActions = initDetailWorkerActions;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindTaskSidebarDismissHandlers);
+} else {
+    bindTaskSidebarDismissHandlers();
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    var panel = document.getElementById('global-task-side-panel');
+    if (panel && panel.classList.contains('active')) {
+        closeGlobalTaskSidebar();
+    }
+});
+</script>
+
+<!-- Подключаем модуль чата -->
+<script src="{{ url_for('static', filename='js/chat.js') }}?v=1.9"></script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "admin/_subnav.html" import admin_subnav with context %}
+
+{% block title %}Администрирование | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+.admin-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.admin-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-wrap: wrap;
+}
+
+.admin-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.admin-tab i {
+    width: 16px;
+    height: 16px;
+}
+
+.admin-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.admin-tab.active {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border-color: var(--border);
+    border-bottom-color: var(--bg-primary);
+}
+
+.admin-panel-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.admin-panel-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.admin-panel-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.admin-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+</style>
+{% block admin_extra %}{% endblock %}
+{% endblock %}
+
+{% block main_content %}
+<div class="admin-container">
+    {{ admin_subnav(active_admin_tab|default('users')) }}
+    {% block admin_content %}{% endblock %}
+</div>
+{% block admin_scripts %}{% endblock %}
+{% endblock %}

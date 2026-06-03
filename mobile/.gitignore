@@ -1,0 +1,13 @@
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+*.iml
+.idea/
+.vscode/
+*.lock
+**/GeneratedPluginRegistrant.*
+**/Pods/
+**/.gradle/
+**/local.properties

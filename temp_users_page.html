@@ -1,0 +1,4475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="theme-color" content="#0e1621" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <title>Администрирование | GruzzExpert</title>
+    
+    <!-- Preconnect для улучшения производительности -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- iro.js color picker -->
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+
+    <!-- Шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <script>
+    (function() {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.cookie = "user_timezone=" + encodeURIComponent(userTimeZone) + "; path=/; max-age=31536000; SameSite=Lax";
+        console.log("🌍 Глобальная таймзона зафиксирована:", userTimeZone);
+    })();
+    </script>
+    
+    <!-- Lucide иконки (асинхронно) -->
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    
+    <style>
+        /* RESET & BASE */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* CSS Variables - Dark theme (default) */
+        :root {
+            --bg-primary: #0e1621;
+            --bg-secondary: #17212b;
+            --bg-tertiary: #242f3d;
+            --text-primary: #e4e6eb;
+            --text-secondary: #8e9eae;
+            --text-muted: #5e6f8d;
+            --accent: #2b5278;
+            --accent-rgb: 43, 82, 120;
+            --accent-hover: #2c6b98;
+            --accent-light: #3a6b99;
+            --success: #4caf50;
+            --success-hover: #43a047;
+            --warning: #f39c12;
+            --warning-hover: #e67e22;
+            --danger: #dc3545;
+            --danger-hover: #c82333;
+            --border: #242f3d;
+            --border-light: #2a3645;
+            --sidebar-width: 340px;
+            --message-mine: #2b5278;
+            --message-theirs: #242f3d;
+            --bg-chat-theirs: #242f3d;
+            --text-chat-theirs: rgba(255, 255, 255, 0.9);
+            --status-recruiting: #a855f7;
+            --status-in-progress: #f59e0b;
+            --status-done: #22c55e;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+            --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.3);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.2s ease;
+            --transition-slow: 0.3s ease;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --space-2xl: 32px;
+            --space-3xl: 48px;
+            /* Градиенты - будут переопределяться через JS */
+            --gradient-start: #2b5278;
+            --gradient-end: #2c6b98;
+            --accent-gradient: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+        }
+        
+        /* Light theme */
+        body.light {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f0f2f5;
+            --bg-tertiary: #eef2f6;
+            --text-primary: #1c1e21;
+            --text-secondary: #65676b;
+            --text-muted: #8d949e;
+            --accent: #0088cc;
+            --accent-rgb: 0, 136, 204;
+            --accent-hover: #0099e6;
+            --accent-light: #33a6e0;
+            --success: #31a24c;
+            --success-hover: #2c8e43;
+            --border: #dce3ec;
+            --border-light: #e4e9f0;
+            --message-mine: #0088cc;
+            --message-theirs: #eef2f6;
+            --bg-chat-theirs: #ffffff;
+            --text-chat-theirs: #1c1e21;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05);
+            --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* APP LAYOUT */
+        .app {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* SIDEBAR */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: transform var(--transition-slow);
+        }
+        
+        /* Custom scrollbar */
+        .sidebar::-webkit-scrollbar,
+        .messages-container::-webkit-scrollbar,
+        .chats-list-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track,
+        .messages-container::-webkit-scrollbar-track,
+        .chats-list-sidebar::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb,
+        .messages-container::-webkit-scrollbar-thumb,
+        .chats-list-sidebar::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .messages-container::-webkit-scrollbar-thumb:hover,
+        .chats-list-sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+        
+        /* MOBILE STYLES */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed !important;
+                left: -280px !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                width: 280px !important;
+                height: 100vh !important;
+                z-index: 99999 !important;
+                background: var(--bg-secondary) !important;
+                transition: left 0.3s ease !important;
+            }
+            
+            .sidebar.open {
+                left: 0 !important;
+            }
+            
+            .sidebar-overlay {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: rgba(0, 0, 0, 0.5) !important;
+                z-index: 99998 !important;
+                display: none !important;
+            }
+            
+            .sidebar-overlay.active {
+                display: block !important;
+            }
+            
+            .no-scroll {
+                overflow: hidden !important;
+            }
+            
+            .mobile-back-btn {
+                display: flex !important;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-back-btn {
+                display: none;
+            }
+            .sidebar-overlay {
+                display: none !important;
+            }
+        }
+        
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            border: none;
+            text-decoration: none;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        /* Для кнопок используем переменную */
+        .btn-primary,
+        .btn-save-profile,
+        .profile-role-badge,
+        .profile-tab.active,
+        .approve-btn,
+        .send-custom-btn svg rect,
+        .gruzz-video-btn.is-success {
+            background: var(--accent-gradient) !important;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: var(--success-hover);
+        }
+        
+        /* CARD */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: var(--space-lg);
+            transition: var(--transition-normal);
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* CHAT ITEM */
+        .chat-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-sm) var(--space-lg);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            border-radius: var(--radius-md);
+            margin: 2px var(--space-sm);
+            cursor: pointer;
+        }
+        
+        .chat-item:hover {
+            background: var(--bg-tertiary);
+            transform: translateX(2px);
+        }
+        
+        .chat-item.active {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .chat-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-full);
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 500;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        .chat-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .chat-avatar-placeholder {
+            width: 44px !important;
+            height: 44px !important;
+            border-radius: 50% !important;
+            background: rgba(var(--accent-rgb, 43, 82, 120), 0.15) !important;
+            border: 1px solid rgba(var(--accent-rgb, 43, 82, 120), 0.4) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-shrink: 0 !important;
+            transition: all var(--transition-fast) !important;
+        }
+
+        .user-avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .chat-avatar-placeholder i {
+            width: 20px !important;
+            height: 20px !important;
+            color: var(--accent) !important;
+            stroke-width: 2.5px !important;
+            display: block !important;
+        }
+
+        .chat-avatar-placeholder i svg {
+            width: 20px !important;
+            height: 20px !important;
+            color: var(--accent) !important;
+            stroke: var(--accent) !important;
+            stroke-width: 2.5px !important;
+        }
+
+        .chat-item:hover .chat-avatar-placeholder {
+            background: rgba(var(--accent-rgb, 43, 82, 120), 0.25) !important;
+            border-color: var(--accent) !important;
+        }
+
+        .empty-sidebar-state {
+            color: var(--text-secondary) !important;
+            font-size: 13px !important;
+            padding: var(--space-xs) 0 var(--space-xs) var(--space-xl) !important;
+            opacity: 0.5 !important;
+            display: block !important;
+            line-height: 1.4;
+            font-weight: 400;
+        }
+        
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .chat-name {
+            font-weight: 500;
+            margin-bottom: var(--space-xs);
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-item-meta {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            justify-content: space-between !important;
+            margin-left: auto !important;
+            padding-left: 10px !important;
+            height: 40px !important;
+            flex-shrink: 0;
+        }
+
+        .chat-item-time,
+        .chat-time {
+            font-size: 12px !important;
+            color: var(--text-secondary) !important;
+            line-height: 1.2;
+        }
+
+        .chat-unread-badge {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background-color: var(--accent, #3b82f6) !important;
+            color: #ffffff !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            min-width: 18px !important;
+            height: 18px !important;
+            padding: 0 5px !important;
+            border-radius: 9px !important;
+            line-height: 1 !important;
+            margin-top: 6px !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+            letter-spacing: 0 !important;
+        }
+        
+        .chat-preview {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* CHAT HEADER */
+        .chat-header {
+            padding: var(--space-md) var(--space-xl);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            flex-shrink: 0;
+        }
+        
+        .burger-header-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: var(--radius-full);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+        
+        .burger-header-btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.05);
+        }
+        
+        .burger-header-btn i {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+        
+        .chat-header-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .chat-header-info {
+            flex: 1;
+        }
+        
+        .chat-header-info h3 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .chat-header-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* MESSAGES */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-lg) var(--space-xl) var(--space-sm) var(--space-xl);
+        }
+        
+        .messages-area {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .message {
+            display: flex;
+            margin-bottom: var(--space-sm);
+            width: 100%;
+            animation: messageAppear var(--transition-normal);
+        }
+        
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.my {
+            justify-content: flex-end;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: var(--space-sm);
+            flex-shrink: 0;
+        }
+        
+        .message.my .message-avatar {
+            display: none;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: 20px;
+            word-wrap: break-word;
+            position: relative;
+        }
+        
+        .message.other .message-bubble {
+            background: var(--bg-chat-theirs, var(--message-theirs));
+            color: var(--text-chat-theirs, var(--text-primary));
+        }
+        
+        .message.my .message-bubble {
+            background: var(--accent);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message.other .message-text {
+            color: var(--text-primary);
+        }
+        
+        .message.my .message-text {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .message-sender {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+        
+        .message-text {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .message-time {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-align: right;
+        }
+        
+        /* CHAT INPUT */
+        .chat-input-wrapper {
+            position: sticky;
+            bottom: 0;
+            padding: var(--space-lg) var(--space-xl) var(--space-xl) var(--space-xl);
+            background: linear-gradient(to top, var(--bg-primary) 80%, transparent);
+            flex-shrink: 0;
+        }
+        
+        .chat-input {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 6px var(--space-sm) 6px var(--space-md);
+            background: var(--bg-tertiary);
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            max-width: 800px;
+            margin: 0 auto;
+            transition: border-color var(--transition-fast);
+        }
+        
+        .chat-input:focus-within {
+            border-color: var(--accent);
+        }
+        
+        .chat-input textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            padding: var(--space-md) 0;
+            resize: none;
+            font-family: inherit;
+            max-height: 120px;
+        }
+        
+        .chat-input textarea::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .attach-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            background: var(--bg-secondary);
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .attach-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+            transform: scale(1.05);
+        }
+        
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border: none;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.05);
+        }
+        
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: var(--space-xl);
+            right: var(--space-xl);
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            transition: all var(--transition-normal);
+        }
+        
+        .fab:hover {
+            transform: scale(1.1);
+            background: var(--accent-hover);
+        }
+
+        /* Chat FAB: новый чат + создание группы */
+        .chat-fab-container {
+            position: fixed !important;
+            bottom: 30px !important;
+            right: 30px !important;
+            width: 56px !important;
+            padding-top: 90px !important;
+            display: flex !important;
+            justify-content: center !important;
+            z-index: 9999 !important;
+        }
+        .chat-fab-main {
+            position: absolute !important;
+            bottom: 0 !important;
+            width: 56px !important;
+            height: 56px !important;
+            border-radius: 50% !important;
+            background: var(--accent) !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.2s ease !important;
+            z-index: 2 !important;
+        }
+        .chat-fab-main:hover {
+            transform: scale(1.05) !important;
+            background: var(--accent-hover) !important;
+        }
+        .chat-fab-main i {
+            width: 24px !important;
+            height: 24px !important;
+            display: block !important;
+        }
+        .chat-fab-action {
+            position: absolute !important;
+            bottom: 70px !important;
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 1 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transform: translateY(20px) scale(0.8) !important;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        }
+        .chat-fab-action:hover {
+            background: var(--border) !important;
+            color: var(--accent) !important;
+        }
+        .chat-fab-action i {
+            width: 20px !important;
+            height: 20px !important;
+            display: block !important;
+        }
+        .chat-fab-container:hover .chat-fab-action {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            transform: translateY(0) scale(1) !important;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            transition: var(--transition-fast);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Create group modal */
+        .custom-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            z-index: 100002;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .custom-modal-content {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+        .custom-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .custom-modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .close-modal-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: var(--radius-sm);
+            transition: color 0.2s ease, background 0.2s ease;
+        }
+        .close-modal-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+        .close-modal-btn i {
+            width: 20px;
+            height: 20px;
+        }
+        .custom-modal-body {
+            padding: 20px;
+        }
+        .custom-modal-footer {
+            padding: 0 20px 20px;
+        }
+        .create-group-submit-btn {
+            width: 100%;
+        }
+        .group-users-list {
+            max-height: 250px;
+            overflow-y: auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 8px;
+        }
+        .group-user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .group-user-item:hover {
+            background: var(--bg-tertiary);
+        }
+        .group-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        .group-user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .group-user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .group-user-item .user-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .group-user-check {
+            flex-shrink: 0;
+            margin-left: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .group-user-checkbox {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            width: 24px !important;
+            height: 24px !important;
+            border: 2px solid var(--border) !important;
+            border-radius: 50% !important;
+            background-color: var(--bg-secondary) !important;
+            cursor: pointer !important;
+            position: relative !important;
+            outline: none !important;
+            margin: 0 !important;
+            transition: all 0.2s ease !important;
+            flex-shrink: 0 !important;
+        }
+        .group-user-checkbox:hover {
+            border-color: var(--accent) !important;
+        }
+        .group-user-checkbox:checked {
+            background-color: var(--accent) !important;
+            border-color: var(--accent) !important;
+        }
+        .group-user-checkbox:checked::after {
+            content: '' !important;
+            position: absolute !important;
+            top: 4px !important;
+            left: 8px !important;
+            width: 5px !important;
+            height: 10px !important;
+            border: solid white !important;
+            border-width: 0 2px 2px 0 !important;
+            transform: rotate(45deg) !important;
+        }
+        .group-users-empty {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        /* TASK CARD */
+        .task-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: all var(--transition-normal);
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent);
+        }
+        
+        /* BADGES */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .badge-recruiting {
+            background: var(--status-recruiting);
+            color: white;
+        }
+        
+        .badge-in-progress {
+            background: var(--status-in-progress);
+            color: #0e1621;
+        }
+        
+        .badge-done {
+            background: var(--status-done);
+            color: white;
+        }
+        
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-3xl) var(--space-xl);
+            color: var(--text-secondary);
+        }
+        
+        .empty-state i {
+            width: 48px;
+            height: 48px;
+            margin-bottom: var(--space-lg);
+            opacity: 0.5;
+        }
+        
+        /* RIPPLE EFFECT */
+        .theme-ripple {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999999;
+            transform: translate(-50%, -50%) scale(0);
+        }
+        
+        .ripple-animate {
+            animation: ripple-speed 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        @keyframes ripple-speed {
+            to {
+                transform: translate(-50%, -50%) scale(3000);
+            }
+        }
+        
+        /* SIDEBAR HEADER & DROPDOWN */
+        .sidebar-header {
+            padding: var(--space-xl) var(--space-lg);
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            cursor: pointer;
+            padding: var(--space-sm);
+            border-radius: var(--radius-md);
+            position: relative;
+            transition: var(--transition-fast);
+        }
+        
+        .user-menu:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-full);
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 500;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            font-size: 16px;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            top: 70px;
+            left: var(--space-lg);
+            width: 240px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            z-index: 200;
+            display: none;
+            overflow: hidden;
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+            animation: dropdownFade var(--transition-fast);
+        }
+        
+        @keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md) var(--space-lg);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: var(--transition-fast);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border);
+            margin: var(--space-xs) 0;
+        }
+        
+        /* NAV TABS */
+        .nav-tabs {
+            display: flex;
+            gap: var(--space-sm);
+            margin: var(--space-lg);
+        }
+        
+        .nav-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm);
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            color: var(--text-secondary);
+            transition: var(--transition-fast);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .nav-tab i {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .nav-tab.active {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .nav-tab:hover:not(.active) {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        /* CHATS LIST HEADER & SEARCH */
+        .chats-list-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-lg);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .chats-list-header-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chats-list-header-main h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .chats-list-header-main p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin: 2px 0 0;
+        }
+
+        .chat-header-action-btn {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            border-radius: 50%;
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: var(--space-xs);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            opacity: 0.8;
+            flex-shrink: 0;
+        }
+
+        .chat-header-action-btn:hover {
+            background: var(--bg-tertiary);
+            transform: scale(1.05);
+            opacity: 1;
+        }
+
+        .chat-header-action-btn [data-gruzz-icon="search"] {
+            width: 24px;
+            height: 24px;
+        }
+
+        [data-gruzz-icon] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            transition: all 0.2s ease;
+        }
+
+        [data-gruzz-icon] svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .chat-search-expandable {
+            flex-basis: 100%;
+            width: 100%;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+            margin-top: 0;
+        }
+
+        .chat-search-expandable.is-open {
+            max-height: 48px;
+            opacity: 1;
+            margin-top: var(--space-xs);
+        }
+
+        .chat-list-search-input {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .chat-list-search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(43, 82, 120, 0.15);
+        }
+
+        .chat-groups-wrapper .section-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-sm) var(--space-lg) var(--space-xs);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chat-groups-wrapper .section-header i {
+            width: 14px;
+            height: 14px;
+        }
+
+        .sidebar-chats-wrapper .chats-list-header-main p {
+            display: none;
+        }
+
+        .sidebar-chats-wrapper .chats-list-burger {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-chats-wrapper .chats-list-burger {
+                display: flex;
+            }
+        }
+
+        .chats-list-sidebar {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: var(--space-lg);
+        }
+        
+        /* ===== ВЫДВИЖНАЯ ПАНЕЛЬ ДЕТАЛЕЙ ===== */
+        .task-detail-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 420px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 2000;
+            transform: translate3d(100%, 0, 0);
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.05);
+            will-change: transform;
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-detail-panel.open {
+            transform: translate3d(0, 0, 0);
+        }
+
+        .task-detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0);
+            z-index: 1999;
+            transition: background 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.05);
+            pointer-events: none;
+        }
+
+        .task-detail-overlay.active {
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+        }
+
+        .task-detail-panel.open.blur-enabled .task-detail-content {
+            backdrop-filter: blur(8px);
+            transition: backdrop-filter 0.2s ease;
+        }
+
+        .task-detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .task-detail-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            transition: var(--transition-fast);
+        }
+
+        .task-detail-close:hover {
+            background: var(--bg-secondary);
+        }
+
+        .task-detail-header h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .task-detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-lg);
+            transform: translateZ(0);
+            min-height: 0;
+        }
+
+        .task-detail-footer {
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+
+        .task-detail-footer.detail-actions-sticky {
+            margin-top: 0;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        /* Карточки внутри панели */
+        .detail-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-md);
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+
+        .detail-card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-lg);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-card-icon {
+            font-size: 18px;
+        }
+
+        .detail-card-header h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .detail-card-body {
+            padding: var(--space-lg);
+        }
+
+        .detail-field-compact {
+            margin-bottom: var(--space-md);
+        }
+
+        .detail-field-compact:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-value-large {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .detail-value-muted {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .detail-label-small {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .detail-price-large {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--success);
+            text-align: center;
+            padding: var(--space-sm) 0;
+        }
+
+        .detail-status-row,
+        .detail-workers-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) 0;
+        }
+
+        .detail-status-row {
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-status-icon,
+        .detail-workers-icon {
+            font-size: 20px;
+        }
+
+        .detail-status-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .detail-workers-text {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .detail-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-sm) 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .detail-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-info-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .detail-info-value {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .detail-actions-sticky {
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            background: var(--bg-secondary);
+            padding: var(--space-lg);
+            margin-top: var(--space-md);
+            border-top: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .detail-action-btn {
+            width: 100%;
+            padding: var(--space-md);
+            text-align: center;
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+        }
+
+        .detail-action-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white;
+        }
+
+        .detail-action-primary:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+
+        .detail-actions-sticky .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .detail-actions-sticky .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+
+        .detail-actions-sticky .btn-success {
+            background: linear-gradient(135deg, var(--success), var(--success-hover));
+            color: white;
+        }
+
+        .task-detail-loading {
+            text-align: center;
+            padding: var(--space-3xl);
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Мобильная адаптация панели */
+        @media (max-width: 768px) {
+            .task-detail-panel {
+                width: 100%;
+                left: 0;
+                right: auto;
+                transform: translate3d(100%, 0, 0);
+            }
+            
+            .task-detail-panel.open {
+                transform: translate3d(0, 0, 0);
+            }
+            
+            .detail-card-body {
+                padding: var(--space-md);
+            }
+            
+            .detail-price-large {
+                font-size: 24px;
+            }
+            
+            .detail-value-large {
+                font-size: 16px;
+            }
+            
+            .detail-actions-sticky {
+                padding: var(--space-md);
+                gap: var(--space-sm);
+            }
+            
+            .detail-action-btn {
+                padding: var(--space-sm);
+                font-size: 14px;
+            }
+        }
+            
+            .chat-header {
+                padding: var(--space-md) var(--space-lg);
+            }
+            
+            .messages-container {
+                padding: var(--space-md);
+            }
+            
+            .chat-input-wrapper {
+                padding: var(--space-md) var(--space-lg) var(--space-lg) var(--space-lg);
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+        
+        /* LOADING STATE */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-3xl);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Статусы для деталей */
+        .detail-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* UTILITIES */
+        .hidden {
+            display: none !important;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mt-2 {
+            margin-top: var(--space-lg);
+        }
+        
+        /* ANIMATIONS */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn var(--transition-normal);
+        }
+        
+        /* FOCUS VISIBLE for accessibility */
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        
+        /* Disable outline for mouse users */
+        :focus:not(:focus-visible) {
+            outline: none;
+        }
+        
+        /* SELECTION */
+        ::selection {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* ===== КОМПОНЕНТЫ ===== */
+
+        /* Формы */
+        .form-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--space-sm);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .form-label .required {
+            color: var(--danger);
+            margin-left: var(--space-xs);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            transition: var(--transition-fast);
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: var(--space-xs);
+        }
+
+        /* Карточка задачи (обновлённая) */
+        .task-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: var(--transition-normal);
+            cursor: pointer;
+        }
+
+        .task-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .task-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .task-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .task-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--success);
+            white-space: nowrap;
+        }
+
+        .task-details {
+            display: flex;
+            gap: var(--space-md);
+            flex-wrap: wrap;
+            margin-bottom: var(--space-sm);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .task-details i {
+            width: 12px;
+            height: 12px;
+            margin-right: 2px;
+        }
+
+        .task-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-sm);
+            margin-top: var(--space-sm);
+        }
+
+        /* Бейджи статусов */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-recruiting, .status-new {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .status-in-progress {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .status-done, .status-approved {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .status-cancelled, .status-rejected {
+            background: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+        }
+
+        .status-pending {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        /* Аватар */
+        .avatar {
+            border-radius: var(--radius-full);
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-initials {
+            font-size: calc(100% * 0.4);
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Карточка в сайдбаре */
+        .sidebar-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-md) 0 var(--space-sm) 0;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+        }
+        a.sidebar-group-header {
+            cursor: pointer;
+            transition: color var(--transition-fast);
+        }
+        a.sidebar-group-header:hover {
+            color: var(--accent);
+        }
+        .sidebar-group-header .header-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .task-mini-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: var(--space-sm) var(--space-md);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            margin-bottom: var(--space-xs);
+        }
+
+        .task-mini-card:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+
+        .task-mini-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .task-mini-title {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-mini-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* Размеры кнопок */
+        .btn-sm {
+            padding: var(--space-xs) var(--space-md);
+            font-size: 12px;
+        }
+
+        .btn-lg {
+            padding: var(--space-md) var(--space-xl);
+            font-size: 16px;
+        }
+
+        /* Сетка статистики */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-xl);
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: var(--space-xs);
+        }
+
+        /* Таблицы */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: var(--space-md);
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== ГЛОБАЛЬНЫЕ МОБИЛЬНЫЕ СТИЛИ ===== */
+
+        /* Безопасные зоны для iOS */
+        body {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+
+        /* Сайдбар (общий) */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                width: 280px;
+                height: 100%;
+                z-index: 2000;
+                transition: left 0.3s ease;
+                background: var(--bg-secondary);
+                border-right: 1px solid var(--border);
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1999;
+                display: none;
+            }
+            
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
+
+        /* Глобальная эталонная кнопка назад */
+        .back-btn {
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: var(--radius-full);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform var(--transition-fast), background-color var(--transition-fast);
+            text-decoration: none;
+            color: var(--text-primary);
+            flex-shrink: 0;
+            /* Аппаратное ускорение для плавной анимации без рывков */
+            transform: translateZ(0);
+            will-change: transform;
+        }
+        .back-btn:hover {
+            background: var(--border);
+            transform: scale(1.05);
+        }
+        .back-btn i {
+            width: 24px;
+            height: 24px;
+            stroke-width: 2.5px;
+        }
+
+        /* Идеальный UI для TomSelect */
+        .ts-control {
+            background-color: var(--bg-tertiary) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius-md) !important;
+            padding: var(--space-sm) var(--space-md) !important;
+        }
+        /* Цвет введенного текста и выбранного элемента */
+        .ts-control input, .ts-control .item {
+            color: var(--text-primary) !important;
+        }
+        /* Приглушенный цвет плейсхолдера (как у всех инпутов) */
+        .ts-control input::placeholder {
+            color: var(--text-secondary) !important;
+            opacity: 1 !important;
+        }
+
+        /* Темная тема для выпадающего меню TomSelect */
+        .ts-dropdown {
+            background-color: var(--bg-secondary) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-primary) !important;
+            border-radius: 0 0 var(--radius-md) var(--radius-md) !important;
+            box-shadow: var(--shadow-lg) !important;
+            margin-top: 2px !important;
+        }
+        .ts-dropdown .option {
+            color: var(--text-primary) !important;
+            padding: 10px 14px !important;
+            transition: background-color var(--transition-fast) !important;
+        }
+        .ts-dropdown .option:hover,
+        .ts-dropdown .active {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+        /* Красивая подсветка совпадений при вводе текста */
+        .ts-dropdown .highlight {
+            background-color: transparent !important;
+            color: var(--accent) !important;
+            font-weight: 700 !important;
+        }
+
+    </style>
+
+    
+
+    <script>
+        // Загрузка сохранённого градиента при загрузке любой страницы
+        (function() {
+            const savedStart = localStorage.getItem('gradient_start');
+            const savedEnd = localStorage.getItem('gradient_end');
+
+            function hexToRgb(hex) {
+                const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+                if (!match) return null;
+                return `${parseInt(match[1], 16)}, ${parseInt(match[2], 16)}, ${parseInt(match[3], 16)}`;
+            }
+            
+            if (savedStart && savedEnd) {
+                document.documentElement.style.setProperty('--gradient-start', savedStart);
+                document.documentElement.style.setProperty('--gradient-end', savedEnd);
+                document.documentElement.style.setProperty('--accent', savedStart);
+                document.documentElement.style.setProperty('--accent-hover', savedEnd);
+                const accentRgb = hexToRgb(savedStart);
+                if (accentRgb) {
+                    document.documentElement.style.setProperty('--accent-rgb', accentRgb);
+                }
+            }
+        })();
+    </script>
+
+</head>
+<body data-user-id="1">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    
+    <div class="app" id="app">
+        <!-- SIDEBAR -->
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-menu" onclick="toggleDropdown(event)">
+                    <div class="user-avatar">
+                        
+                            
+                                <img src="/uploads/avatars/db1c5d864b5641b9b59917594de6a806.jfif" alt="Арлен" loading="lazy">
+                            
+                        
+                    </div>
+                    <div>
+                        <div class="user-name">Арлен</div>
+                        <div class="user-role">
+                            
+                                Создатель
+                                
+                            
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                </div>
+                
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <a href="/profile" class="dropdown-item">
+                        <i data-lucide="user"></i> Профиль
+                    </a>
+                    
+                    <a href="/statistics" class="dropdown-item">
+                        <i data-lucide="bar-chart"></i> Статистика
+                    </a>
+                    
+                    
+                    <a href="/admin/users" class="dropdown-item">
+                        <i data-lucide="settings"></i> Администрирование
+                    </a>
+                    
+                    
+                    <a href="/admin/verification" class="dropdown-item">
+                        <i data-lucide="clipboard-list"></i> Модерация анкет
+                    </a>
+                    
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item" onclick="toggleTheme()">
+                        <i data-lucide="sun-moon"></i> Сменить тему
+                    </button>
+                    <a href="/logout" class="dropdown-item">
+                        <i data-lucide="log-out"></i> Выйти
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-tabs">
+                <a href="/chats" class="nav-tab ">
+                    <i data-lucide="message-square"></i> Чаты
+                </a>
+                <a href="/tasks" class="nav-tab ">
+                    <i data-lucide="clipboard-list"></i> Заявки
+                </a>
+            </div>
+            
+            <div class="chats-list-sidebar" id="chats-list-sidebar">
+                
+                
+            </div>
+        </aside>
+        
+        
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            
+<div class="admin-container">
+    
+<nav class="admin-tabs" aria-label="Разделы администрирования">
+    <a href="/admin/users"
+       class="admin-tab active">
+        <i data-lucide="users"></i>
+        Пользователи
+    </a>
+    
+    <a href="/admin/workspaces"
+       class="admin-tab">
+        <i data-lucide="building-2"></i>
+        Рабочие пространства
+    </a>
+    
+    
+    <a href="/admin/clients"
+       class="admin-tab">
+        <i data-lucide="contact"></i>
+        Клиенты
+    </a>
+    
+</nav>
+
+    
+    <!-- Шапка с поиском -->
+    <div class="admin-header">
+        <div>
+            <h3>Администрирование</h3>
+            <p>Управление иерархией, ролями и доступом к городам</p>
+        </div>
+        <div class="search-wrapper">
+            <i data-lucide="search"></i>
+            <input type="text" id="adminSearch" placeholder="Поиск по имени, @тегу или телефону...">
+        </div>
+    </div>
+
+    <!-- Иерархия ролей -->
+    <div class="hierarchy-card">
+        <div class="hierarchy-header">
+            <i data-lucide="network"></i>
+            <h4>Иерархия ролей</h4>
+        </div>
+        <div class="hierarchy-body">
+            
+
+            
+            <div class="hierarchy-branch" data-role="creator">
+                <div class="hierarchy-item level-0" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">👑</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Создатель
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Полный доступ ко всему</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <div class="admin-users-list">
+                        
+                        
+                        
+                        <div class="user-compact-row user-card" data-search="Арлен @admi1 +79955695055">
+                            <div class="user-row-main">
+                                
+    <div class="avatar" style="width: 28px; height: 28px;">
+        
+            <img src="/uploads/avatars/db1c5d864b5641b9b59917594de6a806.jfif" alt="Арлен">
+        
+    </div>
+
+                                <div class="user-row-name-wrap">
+                                    <span class="user-row-name">Арлен</span><span class="user-row-tag">@@admi1</span>
+                                </div>
+                                
+                                
+                            </div>
+                            <div class="user-row-meta">
+                                <span class="user-row-phone">+79955695055</span>
+                                <span class="user-row-cities is-empty"
+                                      title="Города не назначены">
+                                    Города не назначены
+                                </span>
+                            </div>
+                            <div class="user-row-actions">
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openLocationsModal(1, "\u0410\u0440\u043b\u0435\u043d")">Города</button>
+                                
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="hierarchy-branch" data-role="director">
+                <div class="hierarchy-item level-1" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">📋</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Директор
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Управление диспетчерами и выше</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <div class="admin-users-list">
+                        
+                        
+                        
+                        <div class="user-compact-row user-card" data-search="Артем test1admin +79955695052">
+                            <div class="user-row-main">
+                                
+    <div class="avatar" style="width: 28px; height: 28px;">
+        
+            <span class="avatar-initials">А</span>
+        
+    </div>
+
+                                <div class="user-row-name-wrap">
+                                    <span class="user-row-name">Артем</span><span class="user-row-tag">@test1admin</span>
+                                </div>
+                                
+                                
+                            </div>
+                            <div class="user-row-meta">
+                                <span class="user-row-phone">+79955695052</span>
+                                <span class="user-row-cities is-empty"
+                                      title="Города не назначены">
+                                    Города не назначены
+                                </span>
+                            </div>
+                            <div class="user-row-actions">
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openLocationsModal(5, "\u0410\u0440\u0442\u0435\u043c")">Города</button>
+                                
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openRoleModal(5, "\u0410\u0440\u0442\u0435\u043c", "director", 0)">Роль</button>
+                                
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="hierarchy-branch" data-role="senior_dispatcher">
+                <div class="hierarchy-item level-2" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">⚙️</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Старший диспетчер
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Управление диспетчерами и менеджерами</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <p class="workers-empty-hint">Нет пользователей с этой ролью</p>
+                    
+                </div>
+            </div>
+            
+            <div class="hierarchy-branch" data-role="dispatcher">
+                <div class="hierarchy-item level-3" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">📞</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Диспетчер
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Управление исполнителями</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <p class="workers-empty-hint">Нет пользователей с этой ролью</p>
+                    
+                </div>
+            </div>
+            
+            <div class="hierarchy-branch" data-role="manager">
+                <div class="hierarchy-item level-4" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">📊</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Менеджер
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Управление исполнителями</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <p class="workers-empty-hint">Нет пользователей с этой ролью</p>
+                    
+                </div>
+            </div>
+            
+            <div class="hierarchy-branch" data-role="brigadir">
+                <div class="hierarchy-item level-5" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">👷</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Бригадир
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Управление исполнителями</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <p class="workers-empty-hint">Нет пользователей с этой ролью</p>
+                    
+                </div>
+            </div>
+            
+            <div class="hierarchy-branch" data-role="worker">
+                <div class="hierarchy-item level-6" onclick="toggleBranch(this)">
+                    <div class="hierarchy-icon">🔧</div>
+                    <div class="hierarchy-info">
+                        <div class="hierarchy-role">
+                            Исполнитель
+                            <i data-lucide="chevron-right" class="arrow-icon"></i>
+                        </div>
+                        <div class="hierarchy-desc">Выполнение заявок</div>
+                    </div>
+                </div>
+                <div class="hierarchy-content">
+                    
+                    
+                    <div class="admin-users-list">
+                        
+                        
+                        
+                            
+                        
+                        <div class="user-compact-row user-card" data-search="Миха @test1 +79955695056">
+                            <div class="user-row-main">
+                                
+    <div class="avatar" style="width: 28px; height: 28px;">
+        
+            <span class="avatar-initials">М</span>
+        
+    </div>
+
+                                <div class="user-row-name-wrap">
+                                    <span class="user-row-name">Миха</span><span class="user-row-tag">@@test1</span>
+                                </div>
+                                
+                                <span class="user-status-badge rating">
+                                    <i data-lucide="star" style="width: 11px; height: 11px;"></i>
+                                    100.0
+                                </span>
+                                
+                                
+                                <span class="user-status-badge stats">
+                                    <span class="ok">✓ 1</span>
+                                    <span class="bad">✗ 0</span>
+                                </span>
+                                
+                            </div>
+                            <div class="user-row-meta">
+                                <span class="user-row-phone">+79955695056</span>
+                                <span class="user-row-cities"
+                                      title="Новосибирск">
+                                    Новосибирск
+                                </span>
+                            </div>
+                            <div class="user-row-actions">
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openLocationsModal(2, "\u041c\u0438\u0445\u0430")">Города</button>
+                                
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openRoleModal(2, "\u041c\u0438\u0445\u0430", "worker", 100.0)">Роль</button>
+                                
+                            </div>
+                        </div>
+                        
+                        
+                        
+                        <div class="user-compact-row user-card" data-search="Денис  test13 +79955695059">
+                            <div class="user-row-main">
+                                
+    <div class="avatar" style="width: 28px; height: 28px;">
+        
+            <img src="/uploads/avatars/f1529d29ee384771813f05d8561cca99.png" alt="Денис ">
+        
+    </div>
+
+                                <div class="user-row-name-wrap">
+                                    <span class="user-row-name">Денис </span><span class="user-row-tag">@test13</span>
+                                </div>
+                                
+                                
+                                <span class="user-status-badge stats">
+                                    <span class="ok">✓ 0</span>
+                                    <span class="bad">✗ 0</span>
+                                </span>
+                                
+                            </div>
+                            <div class="user-row-meta">
+                                <span class="user-row-phone">+79955695059</span>
+                                <span class="user-row-cities is-empty"
+                                      title="Города не назначены">
+                                    Города не назначены
+                                </span>
+                            </div>
+                            <div class="user-row-actions">
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openLocationsModal(4, "\u0414\u0435\u043d\u0438\u0441 ")">Города</button>
+                                
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openRoleModal(4, "\u0414\u0435\u043d\u0438\u0441 ", "worker", 0)">Роль</button>
+                                
+                            </div>
+                        </div>
+                        
+                        
+                        
+                            
+                        
+                        <div class="user-compact-row user-card" data-search="Никита @test2 +79955695057">
+                            <div class="user-row-main">
+                                
+    <div class="avatar" style="width: 28px; height: 28px;">
+        
+            <img src="/uploads/avatars/267f58881d324e33a7db6714fc919d97.jpg" alt="Никита">
+        
+    </div>
+
+                                <div class="user-row-name-wrap">
+                                    <span class="user-row-name">Никита</span><span class="user-row-tag">@@test2</span>
+                                </div>
+                                
+                                
+                                <span class="user-status-badge stats">
+                                    <span class="ok">✓ 0</span>
+                                    <span class="bad">✗ 0</span>
+                                </span>
+                                
+                            </div>
+                            <div class="user-row-meta">
+                                <span class="user-row-phone">+79955695057</span>
+                                <span class="user-row-cities"
+                                      title="Новосибирск">
+                                    Новосибирск
+                                </span>
+                            </div>
+                            <div class="user-row-actions">
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openLocationsModal(3, "\u041d\u0438\u043a\u0438\u0442\u0430")">Города</button>
+                                
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openRoleModal(3, "\u041d\u0438\u043a\u0438\u0442\u0430", "worker", 0)">Роль</button>
+                                
+                            </div>
+                        </div>
+                        
+                        
+                        
+                        <div class="user-compact-row user-card" data-search="Прохор  test5 +79955695053">
+                            <div class="user-row-main">
+                                
+    <div class="avatar" style="width: 28px; height: 28px;">
+        
+            <span class="avatar-initials">П</span>
+        
+    </div>
+
+                                <div class="user-row-name-wrap">
+                                    <span class="user-row-name">Прохор </span><span class="user-row-tag">@test5</span>
+                                </div>
+                                
+                                
+                                <span class="user-status-badge stats">
+                                    <span class="ok">✓ 0</span>
+                                    <span class="bad">✗ 0</span>
+                                </span>
+                                
+                            </div>
+                            <div class="user-row-meta">
+                                <span class="user-row-phone">+79955695053</span>
+                                <span class="user-row-cities is-empty"
+                                      title="Города не назначены">
+                                    Города не назначены
+                                </span>
+                            </div>
+                            <div class="user-row-actions">
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openLocationsModal(6, "\u041f\u0440\u043e\u0445\u043e\u0440 ")">Города</button>
+                                
+                                <button type="button" class="action-btn-small" onclick="event.stopPropagation(); openRoleModal(6, "\u041f\u0440\u043e\u0445\u043e\u0440 ", "worker", 0)">Роль</button>
+                                
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+<!-- Модальное окно смены роли -->
+<div id="roleModal" class="modal" onclick="if (event.target === this) closeRoleModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h4 id="roleModalUserName">Смена роли</h4>
+            <button type="button" class="modal-close" onclick="closeRoleModal()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <form id="roleForm" method="post" action="">
+            <div class="modal-body">
+                <label for="roleSelect" class="settings-hint" style="display: block; margin-bottom: 8px;">Новая роль</label>
+                <select id="roleSelect" name="role" class="filter-select" style="width: 100%;" onchange="toggleRoleRatingField()">
+                    
+                    <option value="director">Директор</option>
+                    
+                    <option value="senior_dispatcher">Старший диспетчер</option>
+                    <option value="dispatcher">Диспетчер</option>
+                    <option value="manager">Менеджер</option>
+                    <option value="brigadir">Бригадир</option>
+                    <option value="worker">Исполнитель</option>
+                </select>
+                <div id="roleRatingGroup" class="form-group-custom" style="margin-top: 16px; display: none;">
+                    <label for="roleRating"><i data-lucide="star"></i> Рейтинг (0–10)</label>
+                    <input type="number" id="roleRating" name="rating" min="0" max="10" step="0.1" placeholder="0.0">
+                    <span class="settings-hint">Только для исполнителей и бригадиров</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeRoleModal()">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно для выбора городов -->
+<div id="locationsModal" class="modal" onclick="if (event.target === this) closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h4 id="modalUserName">Выбор городов</h4>
+            <button class="modal-close" onclick="closeModal()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <select id="citySelect" multiple style="width: 100%;">
+                
+                <option value="1">Москва</option>
+                
+                <option value="2">Санкт-Петербург</option>
+                
+                <option value="3">Севастополь</option>
+                
+                <option value="4">Белгород</option>
+                
+                <option value="5">Брянск</option>
+                
+                <option value="6">Владимир</option>
+                
+                <option value="7">Воронеж</option>
+                
+                <option value="8">Иваново</option>
+                
+                <option value="9">Калуга</option>
+                
+                <option value="10">Кострома</option>
+                
+                <option value="11">Курск</option>
+                
+                <option value="12">Липецк</option>
+                
+                <option value="13">Орёл</option>
+                
+                <option value="14">Рязань</option>
+                
+                <option value="15">Смоленск</option>
+                
+                <option value="16">Тамбов</option>
+                
+                <option value="17">Тверь</option>
+                
+                <option value="18">Тула</option>
+                
+                <option value="19">Ярославль</option>
+                
+                <option value="20">Архангельск</option>
+                
+                <option value="21">Вологда</option>
+                
+                <option value="22">Калининград</option>
+                
+                <option value="23">Петрозаводск</option>
+                
+                <option value="24">Сыктывкар</option>
+                
+                <option value="25">Великий Новгород</option>
+                
+                <option value="26">Псков</option>
+                
+                <option value="27">Мурманск</option>
+                
+                <option value="28">Северодвинск</option>
+                
+                <option value="29">Череповец</option>
+                
+                <option value="30">Астрахань</option>
+                
+                <option value="31">Волгоград</option>
+                
+                <option value="32">Краснодар</option>
+                
+                <option value="33">Ростов-на-Дону</option>
+                
+                <option value="34">Элиста</option>
+                
+                <option value="35">Майкоп</option>
+                
+                <option value="36">Нальчик</option>
+                
+                <option value="37">Владикавказ</option>
+                
+                <option value="38">Грозный</option>
+                
+                <option value="39">Махачкала</option>
+                
+                <option value="40">Назрань</option>
+                
+                <option value="41">Черкесск</option>
+                
+                <option value="42">Ставрополь</option>
+                
+                <option value="43">Сочи</option>
+                
+                <option value="44">Новороссийск</option>
+                
+                <option value="45">Таганрог</option>
+                
+                <option value="46">Шахты</option>
+                
+                <option value="47">Волжский</option>
+                
+                <option value="48">Батайск</option>
+                
+                <option value="49">Уфа</option>
+                
+                <option value="50">Киров</option>
+                
+                <option value="51">Йошкар-Ола</option>
+                
+                <option value="52">Саранск</option>
+                
+                <option value="53">Нижний Новгород</option>
+                
+                <option value="54">Оренбург</option>
+                
+                <option value="55">Пенза</option>
+                
+                <option value="56">Пермь</option>
+                
+                <option value="57">Самара</option>
+                
+                <option value="58">Саратов</option>
+                
+                <option value="59">Казань</option>
+                
+                <option value="60">Ижевск</option>
+                
+                <option value="61">Ульяновск</option>
+                
+                <option value="62">Чебоксары</option>
+                
+                <option value="63">Тольятти</option>
+                
+                <option value="64">Набережные Челны</option>
+                
+                <option value="65">Сызрань</option>
+                
+                <option value="66">Энгельс</option>
+                
+                <option value="67">Дзержинск</option>
+                
+                <option value="68">Орск</option>
+                
+                <option value="69">Стерлитамак</option>
+                
+                <option value="70">Курган</option>
+                
+                <option value="71">Екатеринбург</option>
+                
+                <option value="72">Тюмень</option>
+                
+                <option value="73">Ханты-Мансийск</option>
+                
+                <option value="74">Челябинск</option>
+                
+                <option value="75">Магнитогорск</option>
+                
+                <option value="76">Нижний Тагил</option>
+                
+                <option value="77">Каменск-Уральский</option>
+                
+                <option value="78">Златоуст</option>
+                
+                <option value="79">Миасс</option>
+                
+                <option value="80">Копейск</option>
+                
+                <option value="81">Сургут</option>
+                
+                <option value="82">Нижневартовск</option>
+                
+                <option value="83">Нефтеюганск</option>
+                
+                <option value="84">Новый Уренгой</option>
+                
+                <option value="85">Ноябрьск</option>
+                
+                <option value="86">Горно-Алтайск</option>
+                
+                <option value="87">Барнаул</option>
+                
+                <option value="88">Улан-Удэ</option>
+                
+                <option value="89">Чита</option>
+                
+                <option value="90">Иркутск</option>
+                
+                <option value="91">Кемерово</option>
+                
+                <option value="92">Новокузнецк</option>
+                
+                <option value="93">Красноярск</option>
+                
+                <option value="94">Новосибирск</option>
+                
+                <option value="95">Омск</option>
+                
+                <option value="96">Томск</option>
+                
+                <option value="97">Кызыл</option>
+                
+                <option value="98">Абакан</option>
+                
+                <option value="99">Прокопьевск</option>
+                
+                <option value="100">Бийск</option>
+                
+                <option value="101">Ангарск</option>
+                
+                <option value="102">Братск</option>
+                
+                <option value="103">Норильск</option>
+                
+                <option value="104">Канск</option>
+                
+                <option value="105">Бердск</option>
+                
+                <option value="106">Искитим</option>
+                
+                <option value="107">Ленинск-Кузнецкий</option>
+                
+                <option value="108">Междуреченск</option>
+                
+                <option value="109">Киселёвск</option>
+                
+                <option value="110">Юрга</option>
+                
+                <option value="111">Ачинск</option>
+                
+                <option value="112">Рубцовск</option>
+                
+                <option value="113">Биробиджан</option>
+                
+                <option value="114">Благовещенск</option>
+                
+                <option value="115">Владивосток</option>
+                
+                <option value="116">Магадан</option>
+                
+                <option value="117">Хабаровск</option>
+                
+                <option value="118">Южно-Сахалинск</option>
+                
+                <option value="119">Петропавловск-Камчатский</option>
+                
+                <option value="120">Якутск</option>
+                
+                <option value="121">Уссурийск</option>
+                
+                <option value="122">Находка</option>
+                
+                <option value="123">Комсомольск-на-Амуре</option>
+                
+                <option value="124">Артём</option>
+                
+                <option value="125">Арсеньев</option>
+                
+                <option value="126">Свободный</option>
+                
+                <option value="127">Дальнегорск</option>
+                
+                <option value="128">Большой Камень</option>
+                
+            </select>
+            <div class="settings-hint" style="margin-top: var(--space-sm);">
+                Выберите города, которые будут доступны исполнителю
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+            <button class="btn-primary" onclick="saveUserLocations()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== ОСНОВНЫЕ ФУНКЦИИ =====
+
+// Функция раскрытия/скрытия ветки иерархии
+function toggleBranch(element) {
+    const branch = element.closest('.hierarchy-branch');
+    if (branch) {
+        branch.classList.toggle('active');
+    }
+}
+
+// Переменные для модального окна
+let tomSelectInstance = null;
+let currentUserId = null;
+
+// Поиск пользователей
+document.getElementById('adminSearch')?.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.user-card');
+    
+    rows.forEach(row => {
+        const searchData = row.dataset.search.toLowerCase();
+        const matches = searchTerm === '' || searchData.includes(searchTerm);
+        row.style.display = matches ? '' : 'none';
+        
+        if (matches && searchTerm !== '') {
+            const branch = row.closest('.hierarchy-branch');
+            if (branch) branch.classList.add('active');
+        }
+    });
+});
+
+function toggleRoleRatingField() {
+    const select = document.getElementById('roleSelect');
+    const group = document.getElementById('roleRatingGroup');
+    if (!select || !group) return;
+    const show = select.value === 'worker' || select.value === 'brigadir';
+    group.style.display = show ? 'flex' : 'none';
+}
+
+function openRoleModal(userId, userName, currentRole, currentRating) {
+    const modal = document.getElementById('roleModal');
+    const form = document.getElementById('roleForm');
+    const title = document.getElementById('roleModalUserName');
+    const select = document.getElementById('roleSelect');
+    const ratingInput = document.getElementById('roleRating');
+
+    if (title) title.textContent = `Роль: ${userName}`;
+    if (form) form.action = `/admin/user/${userId}/assign-role`;
+    if (select && currentRole) select.value = currentRole;
+    if (ratingInput) ratingInput.value = currentRating != null ? Number(currentRating).toFixed(1) : '';
+    toggleRoleRatingField();
+    if (modal) modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (typeof refreshIcons === 'function') refreshIcons();
+}
+
+function closeRoleModal() {
+    const modal = document.getElementById('roleModal');
+    if (modal) modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// ===== МОДАЛЬНОЕ ОКНО ДЛЯ ГОРОДОВ =====
+function openLocationsModal(userId, userName) {
+    if (typeof TomSelect === 'undefined') {
+        setTimeout(() => openLocationsModal(userId, userName), 200);
+        return;
+    }
+
+    currentUserId = userId;
+    const modal = document.getElementById('locationsModal');
+    const userNameSpan = document.getElementById('modalUserName');
+
+    if (userNameSpan) userNameSpan.textContent = `Города для ${userName}`;
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    if (tomSelectInstance) {
+        tomSelectInstance.destroy();
+        tomSelectInstance = null;
+    }
+
+    fetch(`/admin/user/${userId}/locations`)
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('citySelect');
+            if (!select) return;
+
+            select.innerHTML = '';
+
+            const citiesData = [{"id": 1, "name": "\u041c\u043e\u0441\u043a\u0432\u0430"}, {"id": 2, "name": "\u0421\u0430\u043d\u043a\u0442-\u041f\u0435\u0442\u0435\u0440\u0431\u0443\u0440\u0433"}, {"id": 3, "name": "\u0421\u0435\u0432\u0430\u0441\u0442\u043e\u043f\u043e\u043b\u044c"}, {"id": 4, "name": "\u0411\u0435\u043b\u0433\u043e\u0440\u043e\u0434"}, {"id": 5, "name": "\u0411\u0440\u044f\u043d\u0441\u043a"}, {"id": 6, "name": "\u0412\u043b\u0430\u0434\u0438\u043c\u0438\u0440"}, {"id": 7, "name": "\u0412\u043e\u0440\u043e\u043d\u0435\u0436"}, {"id": 8, "name": "\u0418\u0432\u0430\u043d\u043e\u0432\u043e"}, {"id": 9, "name": "\u041a\u0430\u043b\u0443\u0433\u0430"}, {"id": 10, "name": "\u041a\u043e\u0441\u0442\u0440\u043e\u043c\u0430"}, {"id": 11, "name": "\u041a\u0443\u0440\u0441\u043a"}, {"id": 12, "name": "\u041b\u0438\u043f\u0435\u0446\u043a"}, {"id": 13, "name": "\u041e\u0440\u0451\u043b"}, {"id": 14, "name": "\u0420\u044f\u0437\u0430\u043d\u044c"}, {"id": 15, "name": "\u0421\u043c\u043e\u043b\u0435\u043d\u0441\u043a"}, {"id": 16, "name": "\u0422\u0430\u043c\u0431\u043e\u0432"}, {"id": 17, "name": "\u0422\u0432\u0435\u0440\u044c"}, {"id": 18, "name": "\u0422\u0443\u043b\u0430"}, {"id": 19, "name": "\u042f\u0440\u043e\u0441\u043b\u0430\u0432\u043b\u044c"}, {"id": 20, "name": "\u0410\u0440\u0445\u0430\u043d\u0433\u0435\u043b\u044c\u0441\u043a"}, {"id": 21, "name": "\u0412\u043e\u043b\u043e\u0433\u0434\u0430"}, {"id": 22, "name": "\u041a\u0430\u043b\u0438\u043d\u0438\u043d\u0433\u0440\u0430\u0434"}, {"id": 23, "name": "\u041f\u0435\u0442\u0440\u043e\u0437\u0430\u0432\u043e\u0434\u0441\u043a"}, {"id": 24, "name": "\u0421\u044b\u043a\u0442\u044b\u0432\u043a\u0430\u0440"}, {"id": 25, "name": "\u0412\u0435\u043b\u0438\u043a\u0438\u0439 \u041d\u043e\u0432\u0433\u043e\u0440\u043e\u0434"}, {"id": 26, "name": "\u041f\u0441\u043a\u043e\u0432"}, {"id": 27, "name": "\u041c\u0443\u0440\u043c\u0430\u043d\u0441\u043a"}, {"id": 28, "name": "\u0421\u0435\u0432\u0435\u0440\u043e\u0434\u0432\u0438\u043d\u0441\u043a"}, {"id": 29, "name": "\u0427\u0435\u0440\u0435\u043f\u043e\u0432\u0435\u0446"}, {"id": 30, "name": "\u0410\u0441\u0442\u0440\u0430\u0445\u0430\u043d\u044c"}, {"id": 31, "name": "\u0412\u043e\u043b\u0433\u043e\u0433\u0440\u0430\u0434"}, {"id": 32, "name": "\u041a\u0440\u0430\u0441\u043d\u043e\u0434\u0430\u0440"}, {"id": 33, "name": "\u0420\u043e\u0441\u0442\u043e\u0432-\u043d\u0430-\u0414\u043e\u043d\u0443"}, {"id": 34, "name": "\u042d\u043b\u0438\u0441\u0442\u0430"}, {"id": 35, "name": "\u041c\u0430\u0439\u043a\u043e\u043f"}, {"id": 36, "name": "\u041d\u0430\u043b\u044c\u0447\u0438\u043a"}, {"id": 37, "name": "\u0412\u043b\u0430\u0434\u0438\u043a\u0430\u0432\u043a\u0430\u0437"}, {"id": 38, "name": "\u0413\u0440\u043e\u0437\u043d\u044b\u0439"}, {"id": 39, "name": "\u041c\u0430\u0445\u0430\u0447\u043a\u0430\u043b\u0430"}, {"id": 40, "name": "\u041d\u0430\u0437\u0440\u0430\u043d\u044c"}, {"id": 41, "name": "\u0427\u0435\u0440\u043a\u0435\u0441\u0441\u043a"}, {"id": 42, "name": "\u0421\u0442\u0430\u0432\u0440\u043e\u043f\u043e\u043b\u044c"}, {"id": 43, "name": "\u0421\u043e\u0447\u0438"}, {"id": 44, "name": "\u041d\u043e\u0432\u043e\u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a"}, {"id": 45, "name": "\u0422\u0430\u0433\u0430\u043d\u0440\u043e\u0433"}, {"id": 46, "name": "\u0428\u0430\u0445\u0442\u044b"}, {"id": 47, "name": "\u0412\u043e\u043b\u0436\u0441\u043a\u0438\u0439"}, {"id": 48, "name": "\u0411\u0430\u0442\u0430\u0439\u0441\u043a"}, {"id": 49, "name": "\u0423\u0444\u0430"}, {"id": 50, "name": "\u041a\u0438\u0440\u043e\u0432"}, {"id": 51, "name": "\u0419\u043e\u0448\u043a\u0430\u0440-\u041e\u043b\u0430"}, {"id": 52, "name": "\u0421\u0430\u0440\u0430\u043d\u0441\u043a"}, {"id": 53, "name": "\u041d\u0438\u0436\u043d\u0438\u0439 \u041d\u043e\u0432\u0433\u043e\u0440\u043e\u0434"}, {"id": 54, "name": "\u041e\u0440\u0435\u043d\u0431\u0443\u0440\u0433"}, {"id": 55, "name": "\u041f\u0435\u043d\u0437\u0430"}, {"id": 56, "name": "\u041f\u0435\u0440\u043c\u044c"}, {"id": 57, "name": "\u0421\u0430\u043c\u0430\u0440\u0430"}, {"id": 58, "name": "\u0421\u0430\u0440\u0430\u0442\u043e\u0432"}, {"id": 59, "name": "\u041a\u0430\u0437\u0430\u043d\u044c"}, {"id": 60, "name": "\u0418\u0436\u0435\u0432\u0441\u043a"}, {"id": 61, "name": "\u0423\u043b\u044c\u044f\u043d\u043e\u0432\u0441\u043a"}, {"id": 62, "name": "\u0427\u0435\u0431\u043e\u043a\u0441\u0430\u0440\u044b"}, {"id": 63, "name": "\u0422\u043e\u043b\u044c\u044f\u0442\u0442\u0438"}, {"id": 64, "name": "\u041d\u0430\u0431\u0435\u0440\u0435\u0436\u043d\u044b\u0435 \u0427\u0435\u043b\u043d\u044b"}, {"id": 65, "name": "\u0421\u044b\u0437\u0440\u0430\u043d\u044c"}, {"id": 66, "name": "\u042d\u043d\u0433\u0435\u043b\u044c\u0441"}, {"id": 67, "name": "\u0414\u0437\u0435\u0440\u0436\u0438\u043d\u0441\u043a"}, {"id": 68, "name": "\u041e\u0440\u0441\u043a"}, {"id": 69, "name": "\u0421\u0442\u0435\u0440\u043b\u0438\u0442\u0430\u043c\u0430\u043a"}, {"id": 70, "name": "\u041a\u0443\u0440\u0433\u0430\u043d"}, {"id": 71, "name": "\u0415\u043a\u0430\u0442\u0435\u0440\u0438\u043d\u0431\u0443\u0440\u0433"}, {"id": 72, "name": "\u0422\u044e\u043c\u0435\u043d\u044c"}, {"id": 73, "name": "\u0425\u0430\u043d\u0442\u044b-\u041c\u0430\u043d\u0441\u0438\u0439\u0441\u043a"}, {"id": 74, "name": "\u0427\u0435\u043b\u044f\u0431\u0438\u043d\u0441\u043a"}, {"id": 75, "name": "\u041c\u0430\u0433\u043d\u0438\u0442\u043e\u0433\u043e\u0440\u0441\u043a"}, {"id": 76, "name": "\u041d\u0438\u0436\u043d\u0438\u0439 \u0422\u0430\u0433\u0438\u043b"}, {"id": 77, "name": "\u041a\u0430\u043c\u0435\u043d\u0441\u043a-\u0423\u0440\u0430\u043b\u044c\u0441\u043a\u0438\u0439"}, {"id": 78, "name": "\u0417\u043b\u0430\u0442\u043e\u0443\u0441\u0442"}, {"id": 79, "name": "\u041c\u0438\u0430\u0441\u0441"}, {"id": 80, "name": "\u041a\u043e\u043f\u0435\u0439\u0441\u043a"}, {"id": 81, "name": "\u0421\u0443\u0440\u0433\u0443\u0442"}, {"id": 82, "name": "\u041d\u0438\u0436\u043d\u0435\u0432\u0430\u0440\u0442\u043e\u0432\u0441\u043a"}, {"id": 83, "name": "\u041d\u0435\u0444\u0442\u0435\u044e\u0433\u0430\u043d\u0441\u043a"}, {"id": 84, "name": "\u041d\u043e\u0432\u044b\u0439 \u0423\u0440\u0435\u043d\u0433\u043e\u0439"}, {"id": 85, "name": "\u041d\u043e\u044f\u0431\u0440\u044c\u0441\u043a"}, {"id": 86, "name": "\u0413\u043e\u0440\u043d\u043e-\u0410\u043b\u0442\u0430\u0439\u0441\u043a"}, {"id": 87, "name": "\u0411\u0430\u0440\u043d\u0430\u0443\u043b"}, {"id": 88, "name": "\u0423\u043b\u0430\u043d-\u0423\u0434\u044d"}, {"id": 89, "name": "\u0427\u0438\u0442\u0430"}, {"id": 90, "name": "\u0418\u0440\u043a\u0443\u0442\u0441\u043a"}, {"id": 91, "name": "\u041a\u0435\u043c\u0435\u0440\u043e\u0432\u043e"}, {"id": 92, "name": "\u041d\u043e\u0432\u043e\u043a\u0443\u0437\u043d\u0435\u0446\u043a"}, {"id": 93, "name": "\u041a\u0440\u0430\u0441\u043d\u043e\u044f\u0440\u0441\u043a"}, {"id": 94, "name": "\u041d\u043e\u0432\u043e\u0441\u0438\u0431\u0438\u0440\u0441\u043a"}, {"id": 95, "name": "\u041e\u043c\u0441\u043a"}, {"id": 96, "name": "\u0422\u043e\u043c\u0441\u043a"}, {"id": 97, "name": "\u041a\u044b\u0437\u044b\u043b"}, {"id": 98, "name": "\u0410\u0431\u0430\u043a\u0430\u043d"}, {"id": 99, "name": "\u041f\u0440\u043e\u043a\u043e\u043f\u044c\u0435\u0432\u0441\u043a"}, {"id": 100, "name": "\u0411\u0438\u0439\u0441\u043a"}, {"id": 101, "name": "\u0410\u043d\u0433\u0430\u0440\u0441\u043a"}, {"id": 102, "name": "\u0411\u0440\u0430\u0442\u0441\u043a"}, {"id": 103, "name": "\u041d\u043e\u0440\u0438\u043b\u044c\u0441\u043a"}, {"id": 104, "name": "\u041a\u0430\u043d\u0441\u043a"}, {"id": 105, "name": "\u0411\u0435\u0440\u0434\u0441\u043a"}, {"id": 106, "name": "\u0418\u0441\u043a\u0438\u0442\u0438\u043c"}, {"id": 107, "name": "\u041b\u0435\u043d\u0438\u043d\u0441\u043a-\u041a\u0443\u0437\u043d\u0435\u0446\u043a\u0438\u0439"}, {"id": 108, "name": "\u041c\u0435\u0436\u0434\u0443\u0440\u0435\u0447\u0435\u043d\u0441\u043a"}, {"id": 109, "name": "\u041a\u0438\u0441\u0435\u043b\u0451\u0432\u0441\u043a"}, {"id": 110, "name": "\u042e\u0440\u0433\u0430"}, {"id": 111, "name": "\u0410\u0447\u0438\u043d\u0441\u043a"}, {"id": 112, "name": "\u0420\u0443\u0431\u0446\u043e\u0432\u0441\u043a"}, {"id": 113, "name": "\u0411\u0438\u0440\u043e\u0431\u0438\u0434\u0436\u0430\u043d"}, {"id": 114, "name": "\u0411\u043b\u0430\u0433\u043e\u0432\u0435\u0449\u0435\u043d\u0441\u043a"}, {"id": 115, "name": "\u0412\u043b\u0430\u0434\u0438\u0432\u043e\u0441\u0442\u043e\u043a"}, {"id": 116, "name": "\u041c\u0430\u0433\u0430\u0434\u0430\u043d"}, {"id": 117, "name": "\u0425\u0430\u0431\u0430\u0440\u043e\u0432\u0441\u043a"}, {"id": 118, "name": "\u042e\u0436\u043d\u043e-\u0421\u0430\u0445\u0430\u043b\u0438\u043d\u0441\u043a"}, {"id": 119, "name": "\u041f\u0435\u0442\u0440\u043e\u043f\u0430\u0432\u043b\u043e\u0432\u0441\u043a-\u041a\u0430\u043c\u0447\u0430\u0442\u0441\u043a\u0438\u0439"}, {"id": 120, "name": "\u042f\u043a\u0443\u0442\u0441\u043a"}, {"id": 121, "name": "\u0423\u0441\u0441\u0443\u0440\u0438\u0439\u0441\u043a"}, {"id": 122, "name": "\u041d\u0430\u0445\u043e\u0434\u043a\u0430"}, {"id": 123, "name": "\u041a\u043e\u043c\u0441\u043e\u043c\u043e\u043b\u044c\u0441\u043a-\u043d\u0430-\u0410\u043c\u0443\u0440\u0435"}, {"id": 124, "name": "\u0410\u0440\u0442\u0451\u043c"}, {"id": 125, "name": "\u0410\u0440\u0441\u0435\u043d\u044c\u0435\u0432"}, {"id": 126, "name": "\u0421\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u0439"}, {"id": 127, "name": "\u0414\u0430\u043b\u044c\u043d\u0435\u0433\u043e\u0440\u0441\u043a"}, {"id": 128, "name": "\u0411\u043e\u043b\u044c\u0448\u043e\u0439 \u041a\u0430\u043c\u0435\u043d\u044c"}];
+            citiesData.forEach(city => {
+                const cityOpt = document.createElement('option');
+                cityOpt.value = city.id;
+                cityOpt.textContent = city.name;
+                select.appendChild(cityOpt);
+            });
+
+            tomSelectInstance = new TomSelect(select, {
+                maxItems: null,
+                placeholder: 'Выберите города...',
+                create: false,
+                sortField: { field: "text", direction: "asc" },
+                plugins: ['remove_button'],
+                dropdownParent: 'body'
+            });
+
+            if (data.locations && data.locations.length > 0) {
+                tomSelectInstance.setValue(data.locations.map(String));
+            }
+        })
+        .catch(error => console.error('Ошибка загрузки городов:', error));
+}
+
+function closeModal() {
+    const modal = document.getElementById('locationsModal');
+    if (modal) modal.classList.remove('active');
+    document.body.style.overflow = '';
+    currentUserId = null;
+    if (tomSelectInstance) {
+        tomSelectInstance.destroy();
+        tomSelectInstance = null;
+    }
+}
+
+function saveUserLocations() {
+    if (!tomSelectInstance || !currentUserId) return;
+    
+    const selected = tomSelectInstance.getValue();
+    
+    fetch(`/admin/user/${currentUserId}/update-locations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locations: selected.map(Number) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast('Города сохранены', 'success');
+            closeModal();
+        } else {
+            showToast(data.message || 'Ошибка', 'error');
+        }
+    })
+    .catch(() => showToast('Ошибка при сохранении', 'error'));
+}
+
+// Уведомления
+function showToast(message, type = 'info') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        `;
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    const bgColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+    toast.style.cssText = `
+        background: ${bgColor};
+        color: white;
+        padding: 10px 20px;
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: var(--shadow-lg);
+        animation: slideUp 0.3s ease;
+        pointer-events: auto;
+    `;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+</script>
+
+</div>
+
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let dropdownOpen = false;
+        
+        // Sidebar functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) {
+                sidebar.classList.toggle('open');
+                if (overlay) overlay.classList.toggle('active');
+            }
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('active');
+        }
+        
+        function filterSidebarChats() {
+            const search = document.getElementById('chat-list-search');
+            if (!search) return;
+            if (typeof window.ChatListUI !== 'undefined') {
+                window.ChatListUI.filterChatList(search.value);
+            }
+        }
+        
+        function goToChat(chatId) {
+            if (chatId) {
+                if (typeof window.clearChatUnreadBadge === 'function') {
+                    window.clearChatUnreadBadge(chatId);
+                }
+                window.location.href = '/chat/' + chatId;
+            }
+        }
+        
+        function toggleDropdown(event) {
+            event?.stopPropagation();
+            const menu = document.getElementById('dropdownMenu');
+            if (menu) {
+                const isShow = menu.classList.contains('show');
+                // Close all dropdowns first
+                document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+                if (!isShow) {
+                    menu.classList.add('show');
+                    dropdownOpen = true;
+                } else {
+                    dropdownOpen = false;
+                }
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('dropdownMenu');
+            const userMenu = document.querySelector('.user-menu');
+            if (menu && userMenu && !userMenu.contains(e.target) && menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                dropdownOpen = false;
+            }
+            
+            // Close sidebar on mobile when clicking outside
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar?.classList.contains('open') && overlay && !sidebar.contains(e.target) && !overlay.contains(e.target)) {
+                    closeSidebar();
+                }
+            }
+        });
+        
+        // Theme toggle with ripple effect
+        function toggleTheme() {
+            const isLight = document.body.classList.contains('light');
+            const ripple = document.createElement('div');
+            ripple.classList.add('theme-ripple');
+            ripple.style.backgroundColor = isLight ? '#0e1621' : '#ffffff';
+            ripple.style.left = '50%';
+            ripple.style.top = '50%';
+            document.body.appendChild(ripple);
+            
+            requestAnimationFrame(() => {
+                ripple.classList.add('ripple-animate');
+            });
+            
+            setTimeout(() => {
+                if (isLight) {
+                    document.body.classList.remove('light');
+                    localStorage.setItem('theme', 'dark');
+                    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0e1621');
+                } else {
+                    document.body.classList.add('light');
+                    localStorage.setItem('theme', 'light');
+                    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#ffffff');
+                }
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }, 400);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 800);
+        }
+        
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light');
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#ffffff');
+        } else {
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0e1621');
+        }
+        
+        // Auto-resize textarea
+        function autoResizeTextarea(textarea) {
+            if (typeof window.autoResizeTextarea === 'function' && window.autoResizeTextarea !== autoResizeTextarea) {
+                window.autoResizeTextarea(textarea);
+                return;
+            }
+            if (!textarea) return;
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+        
+        // Initialize all textareas with auto-resize
+        function initAutoResize() {
+            document.querySelectorAll('textarea').forEach(textarea => {
+                if (!textarea.hasAttribute('data-autoresize-init')) {
+                    textarea.setAttribute('data-autoresize-init', 'true');
+                    textarea.addEventListener('input', function() {
+                        autoResizeTextarea(this);
+                    });
+                    autoResizeTextarea(textarea);
+                }
+            });
+        }
+        
+        // Send message with Enter (Shift+Enter for new line)
+        function setupMessageInput(textareaId, sendButtonId) {
+            const textarea = document.getElementById(textareaId);
+            const sendBtn = document.getElementById(sendButtonId);
+            
+            if (textarea) {
+                textarea.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (sendBtn && !sendBtn.disabled) {
+                            sendBtn.click();
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Smooth scroll to bottom of messages
+        function scrollToBottom(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+        
+        // Initialize Lucide icons when DOM is ready
+        function initIcons() {
+            if (typeof window.refreshGruzzIcons === 'function') {
+                window.refreshGruzzIcons();
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                setTimeout(initIcons, 100);
+            }
+        }
+        
+        // Mobile back button handler (if needed)
+        function initMobileBack() {
+            const backBtn = document.querySelector('.mobile-back-btn');
+            if (backBtn) {
+                backBtn.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        // Logic for mobile back
+                        history.back();
+                    }
+                });
+            }
+        }
+        
+        // Expose functions to global scope
+        window.filterSidebarChats = filterSidebarChats;
+        window.toggleSidebar = toggleSidebar;
+        window.closeSidebar = closeSidebar;
+        window.autoResizeTextarea = autoResizeTextarea;
+        window.toggleTheme = toggleTheme;
+        window.goToChat = goToChat;
+        window.scrollToBottom = scrollToBottom;
+        window.setupMessageInput = setupMessageInput;
+        
+        // Initialize on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initIcons();
+            initAutoResize();
+            initMobileBack();
+            
+            // Close dropdown on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const menu = document.getElementById('dropdownMenu');
+                    if (menu?.classList.contains('show')) {
+                        menu.classList.remove('show');
+                    }
+                    closeSidebar();
+                }
+            });
+        });
+        
+        // Re-initialize icons after dynamic content updates (call this function after AJAX)
+        window.refreshIcons = function() {
+            if (typeof window.refreshGruzzIcons === 'function') {
+                window.refreshGruzzIcons();
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        };
+    </script>
+
+    <!-- Socket.IO клиент -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/realtime.js"></script>
+    <script src="/static/js/chats.js"></script>
+    <script src="/static/js/tasks.js"></script>
+    
+    <script>window.currentUserId = 1;</script>
+    
+    <script>
+        window.formatLocalTimeFromServer = function(value) {
+            if (!value) {
+                return new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        (function wrapRealtimeNotifications() {
+            const origShowNotification = window.showNotification;
+            window.showNotification = function(title, body, timestamp) {
+                let finalBody = body || '';
+                if (timestamp) {
+                    const localTime = window.formatLocalTimeFromServer(timestamp);
+                    finalBody = finalBody ? `${finalBody} (${localTime})` : localTime;
+                }
+                if (typeof origShowNotification === 'function') {
+                    origShowNotification(title, finalBody);
+                }
+            };
+
+            const origShowToast = window.showToast;
+            if (typeof origShowToast === 'function') {
+                window.showToast = function(message, type, timestamp) {
+                    let finalMessage = message || '';
+                    if (timestamp) {
+                        const localTime = window.formatLocalTimeFromServer(timestamp);
+                        finalMessage = finalMessage ? `${finalMessage} · ${localTime}` : localTime;
+                    }
+                    origShowToast(finalMessage, type);
+                };
+            }
+        })();
+
+        function initSocket() {
+            if (window.socket) return;
+            window.socket = io({
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                maxHttpBufferSize: 1e8
+            });
+
+            window.socket.on('connect', function() {
+                console.log('✅ Socket connected');
+                document.dispatchEvent(new CustomEvent('socketReady'));
+            });
+
+            window.socket.on('connect_error', function(error) {
+                console.log('❌ Socket error:', error);
+            });
+        }
+
+        
+        window.addEventListener('load', initSocket);
+        
+    </script>
+    
+<style>
+.admin-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.admin-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-wrap: wrap;
+}
+
+.admin-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.admin-tab i {
+    width: 16px;
+    height: 16px;
+}
+
+.admin-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.admin-tab.active {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border-color: var(--border);
+    border-bottom-color: var(--bg-primary);
+}
+
+.admin-panel-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.admin-panel-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.admin-panel-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.admin-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+</style>
+
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<style>
+/* ===== СТИЛИ ДЛЯ АДМИНИСТРИРОВАНИЯ ===== */
+
+.admin-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Шапка с поиском */
+.admin-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.admin-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.admin-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.search-wrapper {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 280px;
+}
+
+.search-wrapper i {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+}
+
+.search-wrapper input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+}
+
+.search-wrapper input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Иерархия ролей */
+.hierarchy-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin: var(--space-xl);
+}
+
+.hierarchy-header {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.hierarchy-header i {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+}
+
+.hierarchy-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.hierarchy-body {
+    padding: var(--space-md);
+}
+
+/* Ветка иерархии */
+.hierarchy-branch {
+    margin-bottom: var(--space-sm);
+}
+
+.hierarchy-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.hierarchy-item:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+}
+
+.hierarchy-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-full);
+    font-size: 18px;
+}
+
+.hierarchy-info {
+    flex: 1;
+}
+
+.hierarchy-role {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.hierarchy-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.arrow-icon {
+    transition: transform 0.3s ease;
+    width: 14px;
+    height: 14px;
+}
+
+.hierarchy-branch.active .arrow-icon {
+    transform: rotate(90deg);
+}
+
+/* Контент ветки */
+.hierarchy-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    padding-left: 40px;
+}
+
+.hierarchy-branch.active .hierarchy-content {
+    max-height: 5000px;
+}
+
+/* Компактный список пользователей (Density UI) */
+.admin-users-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 8px 0 !important;
+}
+
+.user-compact-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    gap: 12px !important;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.user-compact-row:hover {
+    border-color: var(--accent);
+    background: var(--bg-tertiary);
+}
+
+.user-row-main {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 200px !important;
+    flex: 1 1 200px !important;
+    min-width: 0 !important;
+}
+
+.user-row-main .avatar {
+    flex-shrink: 0;
+}
+
+.user-row-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-row-tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 6px;
+}
+
+.user-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.user-status-badge.rating {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+}
+
+.user-status-badge.stats {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.user-status-badge.stats .ok { color: var(--success); }
+.user-status-badge.stats .bad { color: var(--danger); }
+
+.user-row-meta {
+    display: flex !important;
+    align-items: center !important;
+    gap: 20px !important;
+    color: var(--text-secondary) !important;
+    flex: 2 1 280px !important;
+    min-width: 0 !important;
+}
+
+.user-row-phone {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.user-row-cities {
+    max-width: 250px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 12px !important;
+    min-width: 0;
+}
+
+.user-row-cities.is-empty {
+    opacity: 0.55;
+    font-style: italic;
+}
+
+.user-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.workers-empty-hint {
+    padding: var(--space-sm) 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* Кнопки действий */
+.action-btn-small {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: 12px;
+}
+
+.action-btn-small:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+/* ===== МОДАЛЬНОЕ ОКНО - ИСПРАВЛЕННОЕ ===== */
+.modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    z-index: 99999 !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.modal.active {
+    display: flex !important;
+}
+
+.modal-content {
+    background: var(--bg-secondary) !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--border) !important;
+    width: 480px !important;
+    max-width: 90% !important;
+    position: relative !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    animation: modalAppear 0.3s ease-out;
+    overflow: hidden;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-header {
+    padding: 20px 24px !important;
+    background: var(--bg-tertiary) !important;
+    border-bottom: 1px solid var(--border) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.modal-header h4 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--bg-secondary);
+    color: var(--danger);
+}
+
+.modal-body {
+    padding: 24px !important;
+}
+
+.modal-footer {
+    padding: 20px 24px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-top: 1px solid var(--border) !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+}
+
+/* Общие стили для кнопок модалки */
+.modal-footer button {
+    padding: 10px 24px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Кнопка "Отмена" */
+.modal-footer .btn-secondary {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.modal-footer .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--text-secondary) !important;
+}
+
+/* Кнопка "Сохранить" */
+.modal-footer .btn-primary {
+    background: var(--accent) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(43, 82, 120, 0.3) !important;
+}
+
+.modal-footer .btn-primary:hover {
+    background: var(--accent-hover) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 15px rgba(43, 82, 120, 0.4) !important;
+}
+
+.modal-footer .btn-primary:active {
+    transform: translateY(0) !important;
+}
+
+/* Tom Select внутри модалки */
+.modal-body .ts-wrapper {
+    margin-bottom: 8px;
+}
+
+.modal-body .ts-control {
+    min-height: 48px !important;
+}
+
+#roleRatingGroup label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+#roleRatingGroup input[type="number"] {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+}
+
+#roleRatingGroup input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* ===== ФИКСЫ ДЛЯ TOM SELECT (белый текст на тёмном фоне) ===== */
+/* Цвет текста в поле выбора города */
+.ts-control, 
+.ts-control input, 
+.ts-dropdown .option {
+    color: #ffffff !important;
+    background-color: var(--bg-tertiary) !important;
+}
+
+/* Плейсхолдер */
+.ts-control input::placeholder {
+    color: var(--text-secondary) !important;
+}
+
+/* Выбранные элементы (теги/города) */
+.ts-control .item {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 4px !important;
+}
+
+/* Активный пункт в выпадающем списке при наведении */
+.ts-dropdown .active {
+    background-color: var(--accent-hover) !important;
+    color: #fff !important;
+}
+
+/* Убираем белую рамку и стандартные тени */
+.ts-wrapper.single .ts-control, 
+.ts-wrapper.multi .ts-control {
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+}
+
+/* Фон выпадающего списка */
+.ts-dropdown {
+    background-color: var(--bg-tertiary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Цвет текста в опциях при наведении */
+.ts-dropdown .option:hover {
+    background-color: var(--bg-secondary) !important;
+    color: #fff !important;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .admin-header {
+        padding: var(--space-sm) var(--space-lg);
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-wrapper {
+        width: 100%;
+    }
+    
+    .hierarchy-card {
+        margin: var(--space-md);
+    }
+    
+    .hierarchy-content {
+        padding-left: 0;
+    }
+
+    .user-compact-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        padding: 10px !important;
+    }
+
+    .user-row-meta {
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+        flex-wrap: wrap;
+    }
+
+    .user-row-cities {
+        max-width: 100% !important;
+    }
+
+    .user-row-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+</style>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Пытаемся найти бургер (есть только в list.html и chats/list.html)
+    const burger = document.getElementById('mobile-burger-btn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const body = document.body;
+
+    // Проверяем, есть ли кнопка бургера на этой странице
+    if (burger && sidebar) {
+        console.log('✅ Бургер найден, инициализация');
+        
+        burger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('active');
+            body.classList.toggle('no-scroll');
+            console.log('Клик сработал, класс open переключен');
+        });
+
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+                body.classList.remove('no-scroll');
+            });
+        }
+    } else {
+        console.log('ℹ️ Бургер не найден (скорее всего, это страница чата)');
+    }
+});
+</script>
+
+    <div id="image-lightbox" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 99999; justify-content: center; align-items: center;">
+        <span class="close-lightbox" style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none;">&times;</span>
+        <span class="lightbox-arrow left-arrow" style="position: absolute; left: 20px; top: 50%; color: #fff; font-size: 35px; cursor: pointer; user-select: none; z-index: 100000; display: none;">&#10094;</span>
+        <span class="lightbox-arrow right-arrow" style="position: absolute; right: 20px; top: 50%; color: #fff; font-size: 35px; cursor: pointer; user-select: none; z-index: 100000; display: none;">&#10095;</span>
+        <img id="lightbox-img" src="" alt="Просмотр" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.2s ease;">
+        
+        <!-- Горизонтальная лента мини-превью -->
+        <div id="lightbox-thumbnails" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; max-width: 90%; overflow-x: auto; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
+        </div>
+    </div>
+
+    <style>
+    .chat-videos-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        margin-top: var(--space-sm);
+    }
+    .chat-video-preview {
+        position: relative;
+        width: 280px;
+        max-width: 100%;
+        height: 160px;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--bg-tertiary);
+        cursor: pointer;
+        border: 1px solid var(--border);
+    }
+    .chat-video-preview video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        opacity: 1 !important;
+        display: block !important;
+        pointer-events: none;
+    }
+    .video-play-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50px;
+        height: 50px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all var(--transition-fast);
+        pointer-events: none;
+    }
+    .video-play-overlay svg {
+        width: 22px;
+        height: 22px;
+        margin-left: 2px;
+    }
+    .chat-video-preview:hover .video-play-overlay {
+        transform: translate(-50%, -50%) scale(1.1);
+        background: var(--accent-hover);
+    }
+    .video-meta-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 10px;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+        pointer-events: none;
+    }
+    .video-name {
+        display: block;
+        font-size: 12px;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .video-modal {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        z-index: 99999 !important;
+        display: none;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    .video-modal-content video {
+        max-width: 90vw !important;
+        max-height: 85vh !important;
+        border-radius: var(--radius-md) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+        background: transparent !important;
+        opacity: 1 !important;
+        filter: none !important;
+        outline: none !important;
+        transform: translateZ(0) !important;
+    }
+    #videoPlayerModal video::-webkit-media-controls-enclosure {
+        background: transparent !important;
+    }
+    .video-modal-close {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        opacity: 0.7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        z-index: 1;
+    }
+    .video-modal-close svg {
+        width: 28px;
+        height: 28px;
+    }
+    .video-modal-close:hover {
+        opacity: 1;
+    }
+    </style>
+
+    <div id="videoPlayerModal" class="video-modal" style="display: none;">
+        <button type="button" class="video-modal-close" onclick="closeVideoPlayer()" aria-label="Закрыть">
+            <i data-lucide="x"></i>
+        </button>
+        <div class="video-modal-content">
+            <video id="modalVideoSource" controls playsinline controlsList="nodownload"></video>
+        </div>
+    </div>
+
+    
+    <div id="createGroupModal" class="custom-modal" style="display: none;" onclick="if (event.target === this) closeCreateGroupModal()">
+    <div class="custom-modal-content create-group-modal-content">
+        <div class="custom-modal-header">
+            <h3>Создать группу</h3>
+            <button type="button" class="close-modal-btn" onclick="closeCreateGroupModal()" aria-label="Закрыть">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="custom-modal-body">
+            <div class="form-group">
+                <label class="form-label" for="groupNameInput">Название группы</label>
+                <input type="text" id="groupNameInput" class="form-control" placeholder="Например: Рабочий чат" autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label class="form-label">Выберите участников</label>
+                <div class="form-group" style="margin-top: 15px; margin-bottom: 10px;">
+                    <input type="text" id="groupUserSearch" class="form-control" placeholder="Поиск по имени..." onkeyup="filterGroupUsers()" autocomplete="off">
+                </div>
+                <div class="group-users-list">
+                    
+                    <label class="group-user-item">
+                        <div class="group-user-info">
+                            <div class="group-user-avatar">
+                                
+                                    <div class="user-avatar-placeholder">А</div>
+                                
+                            </div>
+                            <span class="user-name" style="color: var(--text-primary); font-weight: 500;">Артем</span>
+                        </div>
+                        <span class="group-user-check">
+                            <input type="checkbox" class="group-user-checkbox" value="5">
+                        </span>
+                    </label>
+                    
+                    <label class="group-user-item">
+                        <div class="group-user-info">
+                            <div class="group-user-avatar">
+                                
+                                    <img src="/uploads/avatars/f1529d29ee384771813f05d8561cca99.png" alt="Денис ">
+                                
+                            </div>
+                            <span class="user-name" style="color: var(--text-primary); font-weight: 500;">Денис </span>
+                        </div>
+                        <span class="group-user-check">
+                            <input type="checkbox" class="group-user-checkbox" value="4">
+                        </span>
+                    </label>
+                    
+                    <label class="group-user-item">
+                        <div class="group-user-info">
+                            <div class="group-user-avatar">
+                                
+                                    <div class="user-avatar-placeholder">М</div>
+                                
+                            </div>
+                            <span class="user-name" style="color: var(--text-primary); font-weight: 500;">Миха</span>
+                        </div>
+                        <span class="group-user-check">
+                            <input type="checkbox" class="group-user-checkbox" value="2">
+                        </span>
+                    </label>
+                    
+                    <label class="group-user-item">
+                        <div class="group-user-info">
+                            <div class="group-user-avatar">
+                                
+                                    <img src="/uploads/avatars/267f58881d324e33a7db6714fc919d97.jpg" alt="Никита">
+                                
+                            </div>
+                            <span class="user-name" style="color: var(--text-primary); font-weight: 500;">Никита</span>
+                        </div>
+                        <span class="group-user-check">
+                            <input type="checkbox" class="group-user-checkbox" value="3">
+                        </span>
+                    </label>
+                    
+                    <label class="group-user-item">
+                        <div class="group-user-info">
+                            <div class="group-user-avatar">
+                                
+                                    <div class="user-avatar-placeholder">П</div>
+                                
+                            </div>
+                            <span class="user-name" style="color: var(--text-primary); font-weight: 500;">Прохор </span>
+                        </div>
+                        <span class="group-user-check">
+                            <input type="checkbox" class="group-user-checkbox" value="6">
+                        </span>
+                    </label>
+                    
+                </div>
+            </div>
+        </div>
+        <div class="custom-modal-footer">
+            <button type="button" class="btn btn-primary create-group-submit-btn" onclick="submitCreateGroup()">Создать</button>
+        </div>
+    </div>
+</div>
+    
+
+</body>
+</html>

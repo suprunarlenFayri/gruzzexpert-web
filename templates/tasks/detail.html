@@ -1,0 +1,1263 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import 
+    status_badge, button, avatar, empty_state, task_mini_card
+%}
+
+{% block title %}{{ task.title }} | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+/* Стили для детальной страницы заявки */
+.task-detail-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+/* Шапка страницы */
+.detail-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
+}
+
+.detail-header-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.detail-header-avatar i {
+    width: 24px;
+    height: 24px;
+}
+
+.detail-time-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.detail-time-row i {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+}
+
+.worker-tracking-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: var(--space-xs);
+    line-height: 1.5;
+}
+
+.tracking-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+}
+
+.tracking-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-family: inherit;
+    text-decoration: none;
+}
+
+.tracking-btn i {
+    width: 18px;
+    height: 18px;
+}
+
+.tracking-btn.is-disabled,
+.tracking-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tracking-btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.tracking-btn-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+}
+
+.tracking-done-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--success);
+    font-size: 14px;
+}
+
+.detail-header-info {
+    flex: 1;
+}
+
+.detail-header-info h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.detail-task-number {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 var(--space-xs) 0;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.detail-header-info p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+/* Основной контент */
+.detail-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+}
+
+.detail-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: var(--space-xl);
+}
+
+.detail-section {
+    padding: var(--space-xl);
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.section-title i {
+    width: 18px;
+    height: 18px;
+}
+
+/* Информационные блоки */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-lg);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.info-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.info-label i {
+    width: 14px;
+    height: 14px;
+}
+
+.info-value {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.info-value.price {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.info-value.status {
+    display: inline-block;
+    width: fit-content;
+}
+
+/* Описание */
+.description-text {
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Исполнители */
+.workers-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.worker-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+}
+
+.worker-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.worker-name {
+    font-weight: 500;
+}
+
+.worker-status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.worker-status.completed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.worker-status.assigned {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+/* Действия */
+.actions-section {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    margin-top: var(--space-lg);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.detail-content .actions-section {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    margin-top: 0;
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.action-btn {
+    flex: 1;
+    min-width: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-normal);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+}
+
+.action-btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.action-btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.action-btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.action-btn-success:hover {
+    background: var(--success-hover);
+    transform: translateY(-2px);
+}
+
+.action-btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.action-btn-secondary:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+}
+
+/* Боковая панель сайдбара */
+.sidebar-tasks-wrapper {
+    padding: var(--space-md);
+}
+
+.sidebar-group {
+    margin-bottom: var(--space-xl);
+}
+
+.sidebar-group-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-md) 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-group-header i {
+    width: 14px;
+    height: 14px;
+}
+
+.sidebar-empty {
+    padding: var(--space-lg);
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .detail-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+    
+    .detail-header-info h3 {
+        font-size: 16px;
+    }
+    
+    .detail-content {
+        padding: var(--space-md);
+    }
+
+    .task-detail-content .detail-content,
+    .task-detail-panel .detail-content {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    .detail-section {
+        padding: var(--space-lg);
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+    
+    .info-value.price {
+        font-size: 24px;
+    }
+    
+    .actions-section {
+        flex-direction: column;
+    }
+    
+    .action-btn {
+        width: 100%;
+    }
+    
+    .worker-item {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--space-sm);
+    }
+    
+    .worker-info {
+        flex-direction: column;
+    }
+}
+
+/* Анимация */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.detail-card {
+    animation: fadeInUp var(--transition-normal);
+}
+
+/* Вид для исполнителя */
+.worker-essentials-section {
+    padding: var(--space-xl);
+}
+
+.worker-task-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.35;
+    margin: 0 0 var(--space-md) 0;
+}
+
+.worker-task-description {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0 0 var(--space-lg) 0;
+}
+
+.worker-meta-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.worker-meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.worker-meta-row i {
+    width: 18px;
+    height: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.worker-meta-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.worker-pay-card .info-value.price {
+    font-size: 32px;
+    text-align: center;
+    padding: var(--space-sm) 0;
+}
+
+.gruzz-video-btn-container,
+.gruzz-video-btn,
+[data-worker-action] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.gruzz-video-btn-container {
+    padding: 0;
+    background: none;
+    border: none;
+    margin-top: 0;
+}
+
+.worker-action-btn,
+.btn-route,
+.btn-arrive,
+.btn-finish {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.accept-task-wrapper {
+    display: none;
+}
+
+.worker-action-btn {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border: none;
+    font-weight: 600;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-route,
+.btn-arrive,
+.btn-finish {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* «В пути» и «Я на месте» — в стиле карточек приложения */
+.btn-route,
+.btn-arrive {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.btn-route:hover:not(:disabled):not(.is-disabled),
+.btn-arrive:hover:not(:disabled):not(.is-disabled) {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.08);
+}
+
+/* «Закончил работу» — приглушённый премиальный зелёный */
+.btn-finish {
+    background: color-mix(in srgb, var(--bg-tertiary) 40%, #10b981);
+    border: 1px solid color-mix(in srgb, #10b981 55%, var(--border));
+    color: #ecfdf5;
+}
+
+.btn-finish:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--bg-tertiary) 25%, #059669);
+    border-color: #059669;
+}
+
+a.worker-action-btn {
+    text-decoration: none;
+}
+
+.worker-action-btn.is-disabled,
+.worker-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.worker-done-notice {
+    text-align: center;
+    padding: var(--space-md);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.detail-worker-duration {
+    margin-top: var(--space-xs);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.detail-worker-duration i {
+    width: 14px;
+    height: 14px;
+}
+
+/* ===== Видео-кнопка «Взять в работу» ===== */
+:root {
+    --gruzz-yellow: #FFD700;
+    --gruzz-green: #27ae60;
+}
+
+.accept-task-wrapper {
+    margin-top: var(--space-md);
+}
+
+.gruzz-video-btn {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    height: 100px;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.task-detail-actions-worker .gruzz-video-btn {
+    background: var(--bg-tertiary);
+    border: 2px solid color-mix(in srgb, var(--gruzz-yellow) 22%, var(--border));
+    border-radius: var(--radius-lg);
+    transition:
+        background-color 0.4s ease,
+        border-color 0.4s ease,
+        box-shadow 0.4s ease,
+        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-content-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.state-idle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 1;
+    transition: all 0.3s ease;
+    z-index: 5;
+    width: 100%;
+}
+
+.icon-truck {
+    width: 28px;
+    height: 28px;
+    transition: color 0.4s ease, filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.main-label {
+    font-weight: 700;
+    font-size: 18px;
+    transition: color 0.4s ease, text-shadow 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.task-detail-actions-worker .gruzz-video-btn:not(.is-animating):not(.is-success):not(:hover):not(.is-previewing) .icon-truck {
+    color: color-mix(in srgb, var(--gruzz-yellow) 82%, var(--text-secondary));
+    filter: drop-shadow(0 0 4px rgba(255, 204, 0, 0.2));
+}
+
+.task-detail-actions-worker .gruzz-video-btn:not(.is-animating):not(.is-success):not(:hover):not(.is-previewing) .main-label {
+    color: color-mix(in srgb, var(--gruzz-yellow) 78%, var(--text-primary));
+    text-shadow: 0 0 8px rgba(255, 204, 0, 0.2);
+}
+
+.state-animating {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease 0.1s;
+    z-index: 1;
+}
+
+.btn-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+    display: block;
+}
+
+.state-success {
+    position: absolute;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 0;
+    z-index: 10;
+    color: white;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--gruzz-green), #1e8a3e);
+}
+
+.icon-check {
+    width: 24px;
+    height: 24px;
+}
+
+.success-label {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.task-detail-actions-worker .gruzz-video-btn .btn-video {
+    pointer-events: none;
+}
+
+.task-detail-actions-worker .gruzz-video-btn .state-animating {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.task-detail-actions-worker .gruzz-video-btn .state-idle {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.task-detail-actions-worker .gruzz-video-btn:hover:not(.is-animating):not(.is-success),
+.task-detail-actions-worker .gruzz-video-btn.is-previewing:not(.is-animating):not(.is-success) {
+    background-color: #000000 !important;
+    border-color: var(--gruzz-yellow) !important;
+    box-shadow:
+        0 0 15px rgba(255, 204, 0, 0.5),
+        0 0 35px rgba(255, 204, 0, 0.22),
+        inset 0 0 24px rgba(255, 204, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.task-detail-actions-worker .gruzz-video-btn:hover:not(.is-animating):not(.is-success) .state-idle,
+.task-detail-actions-worker .gruzz-video-btn.is-previewing:not(.is-animating):not(.is-success) .state-idle {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.task-detail-actions-worker .gruzz-video-btn:hover:not(.is-animating):not(.is-success) .state-animating,
+.task-detail-actions-worker .gruzz-video-btn.is-previewing:not(.is-animating):not(.is-success) .state-animating {
+    opacity: 1;
+}
+
+.task-detail-actions-worker .gruzz-video-btn.is-animating {
+    background-color: #000000 !important;
+    border-color: var(--gruzz-yellow) !important;
+    box-shadow:
+        0 0 20px rgba(255, 204, 0, 0.65),
+        0 0 45px rgba(255, 204, 0, 0.35);
+    pointer-events: none;
+}
+
+.task-detail-actions-worker .gruzz-video-btn.is-animating .state-idle {
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+.task-detail-actions-worker .gruzz-video-btn.is-animating .state-animating {
+    opacity: 1;
+}
+
+.worker-reject-btn {
+    background: transparent !important;
+    color: var(--danger, #e74c3c) !important;
+    border: 1px solid color-mix(in srgb, var(--danger, #e74c3c) 55%, transparent) !important;
+}
+
+.gruzz-video-btn.is-success {
+    border-color: var(--gruzz-green);
+    pointer-events: none;
+}
+
+.gruzz-video-btn.is-success .state-idle,
+.gruzz-video-btn.is-success .state-animating {
+    opacity: 0 !important;
+    display: none;
+}
+
+.gruzz-video-btn.is-success .state-success {
+    display: flex;
+    opacity: 1;
+    animation: popInSuccess 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popInSuccess {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.detail-content-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.detail-content-scroll::-webkit-scrollbar,
+.task-detail-container::-webkit-scrollbar,
+.side-panel::-webkit-scrollbar,
+.detail-sidebar::-webkit-scrollbar {
+    width: 0 !important;
+    display: none !important;
+}
+
+.task-detail-content .detail-content,
+.task-detail-panel .detail-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.task-detail-panel {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.task-detail-content .detail-card,
+.task-detail-panel .detail-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.worker-status-actions {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    margin-top: var(--space-md) !important;
+    background: none !important;
+    border: none !important;
+    gap: var(--space-sm) !important;
+}
+
+.btn-forward-chat-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-secondary);
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+/* ===== B2B-карточки (единая структура с вкладкой «Заявки») ===== */
+.detail-content .detail-card {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+
+.detail-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-card-icon-lucide {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.12);
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.detail-card-icon-lucide i {
+    width: 16px;
+    height: 16px;
+}
+
+.detail-card-header h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.detail-card-body {
+    padding: var(--space-lg);
+}
+
+.detail-field-compact {
+    margin-bottom: var(--space-md);
+}
+
+.detail-field-compact:last-child {
+    margin-bottom: 0;
+}
+
+.detail-value-large {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.detail-value-muted {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.detail-label-small {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.detail-price-large {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--success);
+    text-align: center;
+    padding: var(--space-sm) 0;
+}
+
+.detail-status-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-workers-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 14px;
+    color: var(--text-primary);
+    padding-top: var(--space-sm);
+}
+
+.detail-workers-meta i {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+}
+
+.detail-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-info-row:last-child {
+    border-bottom: none;
+}
+
+.detail-info-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.detail-info-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.detail-worker-tracking {
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-worker-tracking:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.detail-worker-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.detail-worker-tracking-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.detail-actions-sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--bg-secondary);
+    padding: var(--space-lg);
+    margin-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.detail-actions-sticky .gruzz-video-btn-container,
+.detail-actions-sticky .gruzz-video-btn,
+.detail-actions-sticky .worker-action-btn,
+.detail-actions-sticky [data-worker-action],
+.detail-actions-sticky form {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.detail-actions-sticky .gruzz-video-btn-container {
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.detail-action-btn {
+    width: 100%;
+    padding: var(--space-md);
+    text-align: center;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    box-sizing: border-box;
+}
+
+.btn-success-action {
+    width: 100%;
+    padding: 12px;
+    background: var(--success, #27ae60);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-reject-action {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--danger, #e74c3c);
+    border: 1px solid var(--danger, #e74c3c);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-forward-chat {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.btn-forward-chat:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+}
+</style>
+{% endblock %}
+
+{% block sidebar_tasks %}
+{% if current_user.role in ['worker', 'brigadir'] %}
+<div class="sidebar-tasks-wrapper">
+    <div class="sidebar-group">
+        <a href="{{ url_for('tasks.my_tasks') }}" class="sidebar-group-header">
+            <div class="header-title">
+                <i data-lucide="briefcase"></i>
+                <span>Мои заявки</span>
+            </div>
+            <i data-lucide="chevron-right" style="width: 14px; height: 14px; opacity: 0.5;"></i>
+        </a>
+        <div class="sidebar-group-items">
+            {% for task_item in my_in_progress %}
+                {{ task_mini_card(task_item) }}
+            {% else %}
+            <div class="sidebar-empty">Нет заявок в работе</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block main_content %}
+<div class="task-detail-container">
+    <!-- Шапка -->
+    <div class="detail-header">
+        <a href="{{ url_for('tasks.tasks_list') }}" class="back-btn">
+            <i data-lucide="chevron-left"></i>
+        </a>
+        <button class="back-btn mobile-back-btn" onclick="goBackToTasks()" style="display: none;">
+            <i data-lucide="chevron-left"></i>
+        </button>
+        
+        <div class="detail-header-avatar">
+            <i data-lucide="clipboard"></i>
+        </div>
+        <div class="detail-header-info">
+            {% if current_user.role in ['creator', 'director', 'senior_dispatcher', 'dispatcher', 'manager', 'brigadir'] or current_user.id == task.creator_id %}
+                {% if task.task_number %}
+                <h1 class="detail-task-number">Заявка № {{ task.task_number }}</h1>
+                {% endif %}
+            {% endif %}
+            {% if current_user.role != 'worker' %}
+            <h3>{{ task.title }}</h3>
+            {% endif %}
+            <p>
+                <span>{{ task.price }} ₽</span>
+                {% if current_user.role != 'worker' %}
+                <span>•</span>
+                <span>{{ task.get_assigned_workers()|length }}/{{ task.required_workers }} исполнителей</span>
+                {% endif %}
+                {% if task.city %}
+                <span>•</span>
+                <span>{{ task.city.name }}</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="detail-content-scroll">
+        <div class="detail-content">
+            {% set is_chat = is_chat|default(false) %}
+            {% include 'tasks/_detail_panel_body.html' %}
+        </div>
+    </div>
+
+    {% if can_forward_to_chat and not is_chat %}
+    <div class="btn-forward-chat-footer">
+        <button type="button" class="btn-forward-chat" data-share-task-id="{{ task.id }}">Переслать в чат</button>
+    </div>
+    {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='js/task-worker-actions.js') }}?v=1.5"></script>
+<script>
+function goBackToTasks() {
+    window.location.href = '/tasks';
+}
+
+// handleTaskAccept / bindDetailPanelInteractions — task-worker-actions.js
+
+function initDetailWorkerActions(root) {
+    const taskId = (root || document).querySelector('#detail-worker-actions')?.dataset?.taskId;
+    if (typeof bindDetailPanelInteractions === 'function') {
+        bindDetailPanelInteractions(taskId, root || document);
+    }
+}
+
+// Определяем мобильное устройство и показываем кнопку
+if (window.innerWidth <= 768) {
+    const mobileBackBtn = document.querySelector('.mobile-back-btn');
+    const pcBackBtn = document.querySelector('.detail-header .back-btn:not(.mobile-back-btn)');
+    if (mobileBackBtn) mobileBackBtn.style.display = 'flex';
+    if (pcBackBtn) pcBackBtn.style.display = 'none';
+}
+
+// Обновляем иконки после загрузки
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof refreshIcons === 'function') refreshIcons();
+    initAcceptTaskButton(document);
+    initDetailWorkerActions(document);
+
+    requestAnimationFrame(() => {
+        if (typeof refreshIcons === 'function') refreshIcons();
+    });
+});
+</script>
+{% endblock %}

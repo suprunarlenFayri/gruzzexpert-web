@@ -1,0 +1,717 @@
+{% extends "admin/_layout.html" %}
+
+{% block admin_extra %}
+<style>
+.clients-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+}
+
+.clients-toolbar {
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.clients-toolbar-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.clients-toolbar-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.clients-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.clients-btn:hover {
+    border-color: #2b5278;
+}
+
+.clients-btn.primary {
+    background: #2b5278;
+    border-color: #2b5278;
+    color: #fff;
+}
+
+.clients-btn.primary:hover {
+    background: #234a6d;
+    border-color: #234a6d;
+}
+
+.clients-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.clients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    gap: 8px;
+    padding: 10px 12px;
+}
+
+.client-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color 0.15s ease, opacity 0.2s ease;
+}
+
+.client-card:hover {
+    border-color: #2b5278;
+}
+
+.client-card.is-frozen {
+    opacity: 0.55;
+}
+
+.client-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.client-card-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.client-card-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    background: color-mix(in srgb, #2b5278 14%, var(--bg-tertiary));
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #2b5278;
+}
+
+.client-card-icon i {
+    width: 12px;
+    height: 12px;
+}
+
+.client-card-name {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.client-status-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.client-status-pill.frozen {
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.35);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.client-meta {
+    display: grid;
+    gap: 2px;
+    font-size: 10px;
+}
+
+.client-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+    min-width: 0;
+}
+
+.client-meta-row i {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+}
+
+.client-meta-value {
+    color: var(--text-primary);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.client-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2px;
+}
+
+.client-actions {
+    position: relative;
+    display: inline-flex;
+}
+
+.client-actions-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.client-actions-trigger i {
+    width: 14px;
+    height: 14px;
+}
+
+.client-actions-trigger:hover,
+.client-actions.is-open .client-actions-trigger {
+    border-color: #2b5278;
+}
+
+.client-actions-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 180px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    display: none;
+    z-index: 100;
+}
+
+.client-actions.is-open .client-actions-menu {
+    display: block;
+}
+
+.client-actions-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+}
+
+.client-actions-item:hover {
+    background: rgba(43, 82, 120, 0.12);
+}
+
+.client-actions-item.danger {
+    color: #f87171;
+}
+
+.client-actions-item.danger:hover {
+    background: rgba(220, 53, 69, 0.12);
+}
+
+.clients-empty {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.import-box {
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.import-box-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.import-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.import-file-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.import-file-btn input[type="file"] {
+    display: none;
+}
+
+.import-file-name {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.import-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+#clientModal .modal-body-wrapper {
+    max-width: 440px;
+}
+
+#clientModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#clientModal label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+#clientModal .b2b-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+#clientModal textarea.b2b-input {
+    height: auto;
+    min-height: 72px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+#clientModal .b2b-input:focus {
+    outline: none;
+    border-color: #2b5278;
+}
+
+.client-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.b2b-btn-monolith {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    min-width: 110px;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.b2b-btn-monolith--ghost {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.b2b-btn-monolith--ghost:hover {
+    opacity: 0.88;
+}
+
+.b2b-btn-monolith--primary {
+    background: #2b5278;
+    color: #fff;
+}
+
+.b2b-btn-monolith--primary:hover {
+    background: #234a6d;
+}
+
+#clientModal .modal-footer,
+#clientModal .client-modal-footer {
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-panel-header">
+    <div>
+        <h3>Клиенты</h3>
+        <p>База компаний и контактов вашего пространства</p>
+    </div>
+</div>
+
+<div class="clients-page">
+    <div class="clients-toolbar">
+        <div class="clients-toolbar-meta">Всего: <strong id="clientsCount">{{ clients|length }}</strong></div>
+        <div class="clients-toolbar-actions">
+            <button type="button" class="clients-btn primary" onclick="openClientModal('create')">
+                <i data-lucide="plus"></i>
+                Добавить
+            </button>
+        </div>
+    </div>
+
+    <div class="clients-scroll b2b-scroll">
+        {% if clients %}
+        <div class="clients-grid" id="clientsGrid">
+            {% for client in clients %}
+            <article class="client-card client-row{% if client.status == 'frozen' %} is-frozen{% endif %}"
+                     data-client-id="{{ client.id }}"
+                     data-client-name="{{ client.name|e }}"
+                     data-client-phone="{{ (client.phone|decrypt_field or '')|e }}"
+                     data-client-address="{{ (client.address or '')|e }}"
+                     data-client-status="{{ client.status or 'active' }}">
+                <div class="client-card-head">
+                    <div class="client-card-title">
+                        <div class="client-card-icon">
+                            <i data-lucide="building-2"></i>
+                        </div>
+                        <h4 class="client-card-name">{{ client.name }}</h4>
+                    </div>
+                    {% if client.status == 'frozen' %}
+                    <span class="client-status-pill frozen">Заморожен</span>
+                    {% endif %}
+                </div>
+                <div class="client-meta">
+                    <div class="client-meta-row">
+                        <i data-lucide="phone"></i>
+                        <span class="client-meta-value client-phone-display">{{ client.phone|decrypt_field or '—' }}</span>
+                    </div>
+                    <div class="client-meta-row">
+                        <i data-lucide="map-pin"></i>
+                        <span class="client-meta-value client-address-display">{{ client.address or '—' }}</span>
+                    </div>
+                </div>
+                <div class="client-card-footer">
+                    <div class="client-actions">
+                        <button type="button" class="client-actions-trigger" aria-haspopup="true" aria-expanded="false">
+                            <i data-lucide="more-horizontal"></i>
+                        </button>
+                        <div class="client-actions-menu" role="menu">
+                            <button type="button"
+                                    class="client-actions-item js-edit-client"
+                                    data-client-id="{{ client.id }}">
+                                <i data-lucide="pencil"></i>
+                                Редактировать
+                            </button>
+                            <button type="button"
+                                    class="client-actions-item js-toggle-freeze"
+                                    data-client-id="{{ client.id }}">
+                                <i data-lucide="{% if client.status == 'frozen' %}sun{% else %}snowflake{% endif %}"></i>
+                                <span class="js-freeze-label">{% if client.status == 'frozen' %}Разморозить{% else %}Заморозить{% endif %}</span>
+                            </button>
+                            <button type="button"
+                                    class="client-actions-item danger js-delete-client"
+                                    data-client-id="{{ client.id }}">
+                                <i data-lucide="trash-2"></i>
+                                Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="clients-empty" id="clientsEmptyState">
+            <i data-lucide="users"></i>
+            <p>Клиенты ещё не добавлены</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="import-box">
+        <span class="import-box-title">Импорт из Excel</span>
+        <form class="import-form" method="post" action="{{ url_for('admin.import_clients') }}" enctype="multipart/form-data">
+            <label class="import-file-btn">
+                <input type="file" id="importFileInput" name="file" accept=".xlsx" required>
+                <i data-lucide="paperclip"></i>
+                <span>Файл</span>
+            </label>
+            <span class="import-file-name" id="importFileName">Не выбран</span>
+            <button type="submit" class="clients-btn primary">
+                <i data-lucide="upload"></i>
+                Загрузить
+            </button>
+            <span class="import-hint">Колонки: Имя/Организация, Телефон, Адрес</span>
+        </form>
+    </div>
+</div>
+
+<div id="clientModal" class="custom-modal-overlay" onclick="if (event.target === this) closeClientModal()">
+    <div class="modal-body-wrapper b2b-scroll-hide" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 id="clientModalTitle">Новый клиент</h3>
+        </div>
+        <form id="clientForm" class="modal-content b2b-scroll-hide" method="post" action="{{ url_for('admin.add_client') }}">
+            <label>
+                Имя / Организация *
+                <input type="text" name="name" id="clientFormName" class="b2b-input" required placeholder="ФИО или название компании">
+            </label>
+            <label>
+                Телефон
+                <input type="tel" name="phone" id="clientFormPhone" class="b2b-input" placeholder="+7 999 000-00-00">
+            </label>
+            <label>
+                Адрес объекта
+                <textarea name="address" id="clientFormAddress" class="b2b-input" rows="3" placeholder="Базовый адрес"></textarea>
+            </label>
+            <div class="client-modal-footer">
+                <button type="button" class="b2b-btn-monolith b2b-btn-monolith--ghost" onclick="closeClientModal()">Отмена</button>
+                <button type="submit" class="b2b-btn-monolith b2b-btn-monolith--primary" id="clientFormSubmit">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+var clientModalMode = 'create';
+
+function openClientModal(mode, clientId) {
+    var modal = document.getElementById('clientModal');
+    var form = document.getElementById('clientForm');
+    var title = document.getElementById('clientModalTitle');
+    var submitBtn = document.getElementById('clientFormSubmit');
+    clientModalMode = mode === 'edit' ? 'edit' : 'create';
+
+    if (clientModalMode === 'edit' && clientId) {
+        var card = document.querySelector('.client-row[data-client-id="' + clientId + '"]');
+        if (!card) return;
+        title.textContent = 'Редактировать клиента';
+        form.action = '/admin/clients/edit/' + clientId;
+        document.getElementById('clientFormName').value = card.dataset.clientName || '';
+        document.getElementById('clientFormPhone').value = card.dataset.clientPhone || '';
+        document.getElementById('clientFormAddress').value = card.dataset.clientAddress || '';
+        submitBtn.textContent = 'Сохранить изменения';
+    } else {
+        title.textContent = 'Новый клиент';
+        form.action = '{{ url_for("admin.add_client") }}';
+        form.reset();
+        submitBtn.textContent = 'Сохранить';
+    }
+    modal.classList.add('active');
+}
+
+function closeClientModal() {
+    document.getElementById('clientModal').classList.remove('active');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var importInput = document.getElementById('importFileInput');
+    var importName = document.getElementById('importFileName');
+    if (importInput && importName) {
+        importInput.addEventListener('change', function () {
+            importName.textContent = importInput.files && importInput.files[0]
+                ? importInput.files[0].name
+                : 'Не выбран';
+        });
+    }
+
+    function closeAllActionMenus(except) {
+        document.querySelectorAll('.client-actions.is-open').forEach(function (wrap) {
+            if (wrap !== except) {
+                wrap.classList.remove('is-open');
+                var btn = wrap.querySelector('.client-actions-trigger');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    document.querySelectorAll('.client-actions-trigger').forEach(function (trigger) {
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var wrap = trigger.closest('.client-actions');
+            var willOpen = !wrap.classList.contains('is-open');
+            closeAllActionMenus(willOpen ? wrap : null);
+            wrap.classList.toggle('is-open', willOpen);
+            trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+    });
+
+    document.addEventListener('click', function () {
+        closeAllActionMenus(null);
+    });
+
+    document.querySelectorAll('.js-edit-client').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            closeAllActionMenus(null);
+            openClientModal('edit', btn.dataset.clientId);
+        });
+    });
+
+    document.querySelectorAll('.js-toggle-freeze').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var clientId = btn.dataset.clientId;
+            var card = document.querySelector('.client-row[data-client-id="' + clientId + '"]');
+            closeAllActionMenus(null);
+
+            fetch('/admin/clients/' + clientId + '/toggle-status', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.ok || !card) return;
+                var frozen = data.client.status === 'frozen';
+                card.dataset.clientStatus = data.client.status;
+                card.classList.toggle('is-frozen', frozen);
+
+                var label = card.querySelector('.js-freeze-label');
+                var icon = card.querySelector('.js-toggle-freeze i');
+                if (label) label.textContent = frozen ? 'Разморозить' : 'Заморозить';
+                if (icon) icon.setAttribute('data-lucide', frozen ? 'sun' : 'snowflake');
+
+                var pill = card.querySelector('.client-status-pill');
+                if (frozen) {
+                    if (!pill) {
+                        var head = card.querySelector('.client-card-head');
+                        if (head) {
+                            pill = document.createElement('span');
+                            pill.className = 'client-status-pill frozen';
+                            pill.textContent = 'Заморожен';
+                            head.appendChild(pill);
+                        }
+                    }
+                } else if (pill) {
+                    pill.remove();
+                }
+                if (typeof refreshIcons === 'function') refreshIcons();
+            })
+            .catch(function () {
+                alert('Не удалось изменить статус клиента');
+            });
+        });
+    });
+
+    document.querySelectorAll('.js-delete-client').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var clientId = btn.dataset.clientId;
+            var card = document.querySelector('.client-row[data-client-id="' + clientId + '"]');
+            if (!card) return;
+
+            var clientName = card.dataset.clientName || 'клиента';
+            if (!confirm('Удалить «' + clientName + '» из базы? Это действие необратимо.')) return;
+
+            closeAllActionMenus(null);
+
+            fetch('/admin/clients/' + clientId + '/delete', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    alert(data.error || 'Не удалось удалить клиента');
+                    return;
+                }
+                card.remove();
+                var countEl = document.getElementById('clientsCount');
+                var grid = document.getElementById('clientsGrid');
+                if (countEl && grid) {
+                    countEl.textContent = grid.querySelectorAll('.client-row').length;
+                }
+                if (grid && !grid.querySelector('.client-row')) {
+                    grid.outerHTML = '<div class="clients-empty" id="clientsEmptyState"><i data-lucide="users"></i><p>Клиенты ещё не добавлены</p></div>';
+                    if (typeof refreshIcons === 'function') refreshIcons();
+                }
+            })
+            .catch(function () {
+                alert('Не удалось удалить клиента');
+            });
+        });
+    });
+
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+</script>
+{% endblock %}

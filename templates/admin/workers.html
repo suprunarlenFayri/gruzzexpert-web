@@ -1,0 +1,356 @@
+{% extends "admin/_layout.html" %}
+{% from "macros/ui.html" import avatar %}
+
+{% block admin_extra %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+.admin-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.admin-header h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+.admin-header p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+.search-wrapper {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 280px;
+}
+
+.search-wrapper input {
+    background: none; border: none; color: var(--text-primary);
+    outline: none; width: 100%; font-size: 14px;
+}
+
+.workers-card {
+    margin: var(--space-xl);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.workers-card-header {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.workers-card-header h4 { margin: 0; font-size: 16px; font-weight: 600; }
+
+.workers-list { padding: var(--space-md); display: flex; flex-direction: column; gap: 8px; }
+
+.worker-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.worker-row-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.worker-row-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.worker-row-tag { color: var(--text-secondary); font-size: 12px; margin-left: 6px; }
+.worker-row-phone { font-size: 12px; color: var(--text-secondary); }
+
+.worker-stats {
+    display: flex; align-items: center; gap: 10px; font-size: 12px; white-space: nowrap;
+}
+
+.worker-stats .rating {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255, 193, 7, 0.12); color: #ffc107;
+    padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600;
+}
+
+.worker-stats .ok { color: var(--success, #22c55e); }
+.worker-stats .bad { color: var(--danger, #ef4444); margin-left: 6px; }
+
+.worker-moderation {
+    font-size: 12px; padding: 4px 10px; border-radius: var(--radius-sm); white-space: nowrap;
+}
+
+.worker-moderation.is-verified { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.worker-moderation.is-pending { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
+.worker-moderation.is-unverified { background: rgba(148, 163, 184, 0.12); color: var(--text-secondary); }
+
+.worker-row-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.action-btn-small {
+    padding: 6px 12px; background: var(--bg-secondary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; color: var(--text-primary); font-size: 12px;
+}
+
+.action-btn-small:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.workers-empty {
+    padding: 40px 20px; text-align: center; color: var(--text-secondary); font-size: 14px;
+}
+
+.modal-body-wrapper .ts-control,
+.modal-body-wrapper .ts-control input,
+.modal-body-wrapper .ts-dropdown .option { color: var(--text-primary) !important; background: transparent !important; }
+.modal-body-wrapper .ts-control .item { background: var(--accent) !important; color: #fff !important; border: none !important; }
+.modal-body-wrapper .ts-wrapper.single .ts-control,
+.modal-body-wrapper .ts-wrapper.multi .ts-control { border: none !important; box-shadow: none !important; }
+
+#roleRatingGroup {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (max-width: 900px) {
+    .worker-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .worker-row-actions { justify-content: flex-start; flex-wrap: wrap; }
+}
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-header">
+    <div>
+        <h3>Исполнители</h3>
+        <p>Рейтинг, история заявок и статус модерации. Пользователи мессенджера — в отдельном разделе.</p>
+    </div>
+    <div class="search-wrapper">
+        <i data-lucide="search"></i>
+        <input type="text" id="workerSearch" placeholder="Поиск по имени, @тегу или телефону...">
+    </div>
+</div>
+
+<div class="workers-card">
+    <div class="workers-card-header">
+        <h4>Карточки исполнителей</h4>
+        {% if current_user.role in ['creator', 'director'] %}
+        <a href="{{ url_for('admin.list_verifications') }}" class="action-btn-small">Модерация анкет</a>
+        {% endif %}
+    </div>
+    <div class="workers-list">
+        {% if workers %}
+            {% for worker in workers %}
+            {% set city_labels = [] %}
+            {% for city in cities if city.id in (worker.allowed_locations or []) %}
+                {% if city_labels.append(city.name) %}{% endif %}
+            {% endfor %}
+            {% set pending = pending_by_user.get(worker.id) %}
+            <div class="worker-row worker-card" data-search="{{ worker.name }} {{ worker.tag or '' }} {{ worker.phone }}">
+                <div class="worker-row-main">
+                    {{ avatar(worker, 32, true) }}
+                    <div style="min-width:0;">
+                        <div class="worker-row-name">
+                            <span class="profile-trigger" data-profile-user-id="{{ worker.id }}" data-profile-context="worker" role="button" tabindex="0" title="Профиль">{{ worker.name }}</span>
+                            {% if worker.tag %}<span class="worker-row-tag">@{{ worker.tag }}</span>{% endif %}
+                        </div>
+                        <div class="worker-row-phone">{{ worker.phone }}</div>
+                        {% if city_labels %}
+                        <div class="worker-row-phone" title="{{ city_labels | join(', ') }}">{{ city_labels | join(', ') }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% set ws_stats = worker_stats_map.get(worker.id, {}) %}
+                <div class="worker-stats">
+                    <span class="rating"><i data-lucide="star" style="width:12px;height:12px;"></i>{{ "%.1f"|format(ws_stats.get('rating', 0)) }}</span>
+                    <span class="ok">✓ {{ ws_stats.get('completed_tasks', 0) }}</span>
+                    <span class="bad">✗ {{ ws_stats.get('missed_tasks', 0) }}</span>
+                </div>
+                <div class="worker-moderation {% if worker.is_verified %}is-verified{% elif pending %}is-pending{% else %}is-unverified{% endif %}">
+                    {% if worker.is_verified %}
+                        Верифицирован
+                    {% elif pending %}
+                        На модерации
+                    {% else %}
+                        Не верифицирован
+                    {% endif %}
+                </div>
+                <div class="worker-row-actions">
+                    <button type="button" class="action-btn-small btn-worker-locations"
+                            data-user-id="{{ worker.id }}"
+                            data-user-name="{{ worker.name|e }}"
+                            data-city-ids='{{ (worker.allowed_locations or [])|tojson }}'>Города</button>
+                    <button type="button" class="action-btn-small btn-worker-role"
+                            data-user-id="{{ worker.id }}"
+                            data-user-name="{{ worker.name|e }}"
+                            data-user-role="{{ worker.role }}"
+                            data-user-rating="{{ ws_stats.get('rating', 0) }}">Роль</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="workers-empty">Исполнители не найдены</div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="roleModal" class="custom-modal-overlay">
+    <div class="modal-body-wrapper" onclick="event.stopPropagation()">
+        <div class="modal-header"><h3 id="roleModalUserName">Смена роли</h3></div>
+        <form id="roleForm" method="post" action="" class="modal-content">
+            <input type="hidden" id="role_user_id" name="user_id" value="">
+            <div>
+                <label for="role_select">Роль исполнителя</label>
+                <select id="role_select" name="role" class="filter-select" data-b2b-select>
+                    <option value="worker">Исполнитель</option>
+                    <option value="brigadir">Бригадир</option>
+                </select>
+            </div>
+            <div id="roleRatingGroup">
+                <label for="roleRating">Рейтинг (0–10)</label>
+                <input type="number" id="roleRating" name="rating" min="0" max="10" step="0.1" placeholder="0.0">
+                <span class="modal-field-hint">Ручной рейтинг исполнителя</span>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeRoleModal()">Отмена</button>
+            <button type="submit" form="roleForm" class="btn-primary">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div id="locationsModal" class="custom-modal-overlay">
+    <div class="modal-body-wrapper" onclick="event.stopPropagation()">
+        <div class="modal-header"><h3 id="modalUserName">Выбор городов</h3></div>
+        <input type="hidden" id="locations_user_id" value="">
+        <div class="modal-content">
+            <div>
+                <label for="locations_select">Города исполнителя</label>
+                <select id="locations_select" multiple>
+                    {% for city in cities %}
+                    <option value="{{ city.id }}">{{ city.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="modal-field-hint">Выберите города, которые будут доступны исполнителю</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeLocationsModal()">Отмена</button>
+            <button type="button" class="btn-primary" id="btnSaveLocations">Сохранить</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<script>
+(function() {
+    var tsInstances = {};
+
+    function showModal(modal) {
+        if (!modal) return;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal(modal) {
+        if (!modal) return;
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function parseCityIds(raw) {
+        if (raw == null || raw === '') return [];
+        if (Array.isArray(raw)) return raw;
+        try { return JSON.parse(raw); } catch (e) { return []; }
+    }
+
+    window.openLocationsModal = function(userId, userName, currentCityIdsJson) {
+        var modal = document.getElementById('locationsModal');
+        if (!modal || typeof TomSelect === 'undefined') return;
+        document.getElementById('locations_user_id').value = userId;
+        document.getElementById('modalUserName').textContent = 'Города: ' + userName;
+        var selectEl = document.getElementById('locations_select');
+        if (!tsInstances.locations) {
+            tsInstances.locations = new TomSelect(selectEl, {
+                plugins: ['remove_button'],
+                maxItems: null,
+                placeholder: 'Выберите города...'
+            });
+        }
+        tsInstances.locations.setValue(parseCityIds(currentCityIdsJson).map(String));
+        showModal(modal);
+    };
+
+    window.closeLocationsModal = function() {
+        hideModal(document.getElementById('locationsModal'));
+    };
+
+    window.openRoleModal = function(userId, currentRole, userName, currentRating) {
+        var modal = document.getElementById('roleModal');
+        document.getElementById('role_user_id').value = userId;
+        document.getElementById('roleForm').action = '/admin/user/' + userId + '/assign-role';
+        document.getElementById('role_select').value = currentRole || 'worker';
+        document.getElementById('roleModalUserName').textContent = 'Исполнитель: ' + userName;
+        document.getElementById('roleRating').value = currentRating ? Number(currentRating).toFixed(1) : '';
+        showModal(modal);
+    };
+
+    window.closeRoleModal = function() {
+        hideModal(document.getElementById('roleModal'));
+    };
+
+    window.saveWorkerLocations = function() {
+        var userId = document.getElementById('locations_user_id').value;
+        var ts = tsInstances.locations;
+        if (!userId || !ts) return;
+        fetch('/admin/user/' + userId + '/update-locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ locations: ts.getValue().map(Number) })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.status === 'success') window.location.reload();
+            else alert(data.message || 'Ошибка сохранения');
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-worker-locations').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openLocationsModal(btn.dataset.userId, btn.dataset.userName, btn.dataset.cityIds);
+            });
+        });
+        document.querySelectorAll('.btn-worker-role').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openRoleModal(btn.dataset.userId, btn.dataset.userRole, btn.dataset.userName, btn.dataset.userRating);
+            });
+        });
+        document.getElementById('btnSaveLocations')?.addEventListener('click', saveWorkerLocations);
+        document.getElementById('workerSearch')?.addEventListener('input', function(e) {
+            var q = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.worker-card').forEach(function(row) {
+                var data = (row.getAttribute('data-search') || '').toLowerCase();
+                row.style.display = !q || data.indexOf(q) !== -1 ? '' : 'none';
+            });
+        });
+        window.addEventListener('click', function(e) {
+            if (e.target === document.getElementById('locationsModal')) closeLocationsModal();
+            if (e.target === document.getElementById('roleModal')) closeRoleModal();
+        });
+        if (typeof refreshIcons === 'function') refreshIcons();
+    });
+})();
+</script>
+{% endblock %}

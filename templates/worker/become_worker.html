@@ -1,0 +1,960 @@
+{% extends "base.html" %}
+
+{% block title %}Анкета исполнителя | ГруззЭксперт{% endblock %}
+
+{% block extra %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<style>/* ===== СТИЛИ ДЛЯ АНКЕТЫ ИСПОЛНИТЕЛЯ ===== */
+
+/* Контейнер анкеты */
+.survey-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xl);
+    background: var(--bg-primary);
+}
+
+.survey-card {
+    max-width: 700px;
+    width: 100%;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: var(--space-xl);
+    box-shadow: var(--shadow-lg);
+    animation: fadeInUp 0.4s ease;
+}
+
+.survey-header {
+    text-align: center;
+    margin-bottom: var(--space-xl);
+}
+
+.survey-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.survey-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.survey-rejected-banner {
+    margin-bottom: var(--space-lg);
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+/* Форма */
+.survey-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.form-label i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Сетка для двух полей */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+}
+
+/* Поля ввода */
+.survey-input,
+.survey-select,
+.survey-textarea {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: var(--transition-fast);
+}
+
+.survey-input:focus,
+.survey-textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(43, 82, 120, 0.2);
+}
+
+/* Календарь даты рождения (GruzzDatePicker) */
+.survey-birth-picker {
+    position: relative;
+}
+
+.survey-birth-picker .gruzz-date-trigger {
+    width: 100%;
+}
+
+.survey-birth-picker .gruzz-date-dropdown {
+    z-index: 1200;
+    width: 100%;
+    min-width: 260px;
+    max-width: 100%;
+}
+
+.survey-birth-error {
+    display: none;
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #f87171;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.survey-picker-btn {    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-align: left;
+    font-family: inherit;
+}
+
+.survey-picker-btn:hover,
+.survey-picker-btn:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.survey-picker-btn.is-empty {
+    color: var(--text-secondary);
+}
+
+.survey-picker-btn i {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+}
+
+/* Tom Select — поле «Город» (как на task/create) */
+.survey-tom-select-group .fav-star-btn {
+    cursor: pointer;
+    margin-right: 8px;
+    color: #999;
+    font-size: 16px;
+}
+
+.survey-tom-select-group .fav-star-btn.active {
+    color: #ffca28;
+}
+
+.survey-tom-select-group .ts-wrapper.single {
+    width: 100%;
+}
+
+.survey-tom-select-group .ts-wrapper.single .ts-control,
+.survey-tom-select-group .ts-wrapper.single .ts-control:focus {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    box-shadow: none !important;
+}
+
+/* Жестко ровняем общую высоту контейнера Tom Select в любом состоянии */
+.survey-form .ts-control {
+    min-height: 50.47px !important;
+    max-height: 50.47px !important;
+    height: 50.47px !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Корректируем высоту строки для текста внутри инпута (и для плейсхолдера, и для выбранного города) */
+.survey-form .ts-control .item,
+.survey-form .ts-control input {
+    line-height: 50.47px !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: var(--text-primary) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 15px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.survey-tom-select-group .ts-dropdown {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    margin-top: 4px !important;
+    overflow: hidden;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.survey-tom-select-group .ts-dropdown .option {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    padding: 10px 14px !important;
+}
+
+.survey-tom-select-group .ts-dropdown .option:hover,
+.survey-tom-select-group .ts-dropdown .option.active,
+.survey-tom-select-group .ts-dropdown .active {
+    background: #333 !important;
+    color: var(--text-primary) !important;
+}
+
+.survey-tom-select-group .ts-dropdown .highlight {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+}
+
+.survey-tom-select-group select#city_id {
+    display: none;
+}
+
+.survey-textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+/* Зоны загрузки фото */
+.upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin: var(--space-sm) 0;
+}
+
+.upload-box {
+    background: var(--bg-tertiary);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-xl);
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.upload-box:hover {
+    border-color: var(--accent);
+    background: rgba(43, 82, 120, 0.05);
+    transform: translateY(-2px);
+}
+
+.upload-icon {
+    width: 40px;
+    height: 40px;
+    color: var(--accent);
+    margin-bottom: var(--space-sm);
+}
+
+.upload-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.upload-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.upload-preview {
+    margin-top: var(--space-sm);
+    max-width: 100%;
+    max-height: 80px;
+    border-radius: var(--radius-sm);
+    display: none;
+}
+
+/* Кнопка отправки */
+.btn-submit-survey {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.btn-submit-survey:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-submit-survey:active {
+    transform: translateY(0);
+}
+
+.btn-submit-survey:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+    box-shadow: none;
+}
+
+.btn-submit-survey:disabled:hover {
+    transform: none;
+    filter: none;
+    box-shadow: none;
+}
+
+/* Блок юридического согласия */
+.survey-consent-block {
+    margin-top: var(--space-xs);
+    padding: 14px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.survey-consent-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.survey-consent-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.survey-consent-checkmark {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.survey-consent-checkmark i {
+    width: 12px;
+    height: 12px;
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: var(--transition-fast);
+}
+
+.survey-consent-checkbox:focus-visible + .survey-consent-checkmark {
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.35);
+}
+
+.survey-consent-checkbox:checked + .survey-consent-checkmark {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.survey-consent-checkbox:checked + .survey-consent-checkmark i {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.survey-consent-text {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.survey-consent-link {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: var(--transition-fast);
+    cursor: pointer;
+}
+
+.survey-consent-link:hover {
+    color: #a78bfa;
+    border-bottom-color: rgba(139, 92, 246, 0.45);
+}
+
+/* Модалка юридического текста */
+.legal-modal-overlay .modal-body-wrapper {
+    max-width: 560px;
+    width: 100%;
+}
+
+.legal-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.legal-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.35;
+    padding-right: 8px;
+}
+
+.legal-modal-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.legal-modal-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+}
+
+.legal-modal-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.legal-modal-scroll h5 {
+    margin: 18px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.legal-modal-scroll h5:first-child {
+    margin-top: 0;
+}
+
+.legal-modal-scroll p {
+    margin: 0 0 10px;
+}
+
+.legal-modal-scroll ul {
+    margin: 0 0 10px;
+    padding-left: 18px;
+}
+
+.legal-modal-scroll li {
+    margin-bottom: 4px;
+}
+
+.legal-modal-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.legal-modal-scroll::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
+.legal-modal-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.legal-modal-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Анимации */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .survey-container {
+        padding: var(--space-md);
+    }
+    
+    .survey-card {
+        padding: var(--space-lg);
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+    
+    .upload-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+    
+    .survey-header h2 {
+        font-size: 22px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="survey-container">
+    <div class="survey-card">
+        <div class="survey-header">
+            <h2>Анкета исполнителя</h2>
+            <p>Заполните данные для получения доступа к заявкам</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('worker.become_worker') }}" enctype="multipart/form-data" class="survey-form">
+            <!-- ФИО -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="user"></i>
+                    ФИО (как в паспорте)
+                </label>
+                <input type="text" name="full_name" class="survey-input" placeholder="Иванов Иван Иванович" required>
+            </div>
+
+            <!-- Дата рождения и Город -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i data-lucide="calendar"></i>
+                        Дата рождения
+                        <span id="calculated-age" class="text-muted" style="margin-left: 10px; font-size: 0.85rem;"></span>
+                    </label>
+                    <div class="gruzz-date-picker survey-birth-picker" data-gruzz-date-picker data-placeholder="ДД.ММ.ГГГГ">
+                        <input type="hidden" name="birth_date" id="survey_birth_date" required>
+                        <button type="button" class="survey-picker-btn gruzz-date-trigger">
+                            <span class="gruzz-date-display is-placeholder">ДД.ММ.ГГГГ</span>
+                            <i data-lucide="calendar"></i>
+                        </button>
+                        <div class="custom-datepicker gruzz-date-dropdown" style="display: none;"></div>
+                    </div>
+                    <p id="birth-date-error" class="survey-birth-error">Регистрация доступна строго с 18 лет. Подрастите немного :)</p>
+                </div>
+                <div class="form-group survey-tom-select-group">
+                    <label class="form-label" for="city_id">
+                        <i data-lucide="map-pin"></i>
+                        Город
+                    </label>
+                    <select id="city_id" name="city_id" required placeholder="Начните вводить город...">
+                        <option value="">Выберите город</option>
+                        {% for city in cities %}
+                        <option value="{{ city.id }}"
+                                data-fav="{{ 'true' if city.id in (current_user.favorite_cities or []) else 'false' }}">
+                            {{ city.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Опыт работы -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="briefcase"></i>
+                    Опыт работы
+                </label>
+                <textarea name="experience" class="survey-textarea" rows="3" placeholder="Расскажите о вашем опыте работы, навыках и квалификации..."></textarea>
+            </div>
+
+            <!-- Дополнительный комментарий -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="message-square"></i>
+                    Дополнительный комментарий
+                </label>
+                <textarea name="comment" class="survey-textarea" rows="2" placeholder="Что вы хотели бы добавить?"></textarea>
+            </div>
+
+            <!-- Фото -->
+            <div class="upload-grid">
+                <div class="upload-box" onclick="document.getElementById('passport-input').click()">
+                    <i data-lucide="id-card" class="upload-icon"></i>
+                    <span class="upload-label">Фото паспорта</span>
+                    <span class="upload-hint">PNG, JPG до 5MB</span>
+                    <input type="file" id="passport-input" name="passport_photo" accept="image/*" hidden onchange="previewImage(this, 'passport-preview')">
+                    <img id="passport-preview" class="upload-preview">
+                </div>
+                <div class="upload-box" onclick="document.getElementById('selfie-input').click()">
+                    <i data-lucide="camera" class="upload-icon"></i>
+                    <span class="upload-label">Селфи</span>
+                    <span class="upload-hint">PNG, JPG до 5MB</span>
+                    <input type="file" id="selfie-input" name="selfie_photo" accept="image/*" hidden onchange="previewImage(this, 'selfie-preview')">
+                    <img id="selfie-preview" class="upload-preview">
+                </div>
+            </div>
+
+            <!-- Юридическое согласие -->
+            <div class="survey-consent-block">
+                <label class="survey-consent-label" for="surveyConsentCheckbox">
+                    <input type="checkbox" id="surveyConsentCheckbox" name="is_legal_agreed" value="1" class="survey-consent-checkbox">
+                    <span class="survey-consent-checkmark" aria-hidden="true">
+                        <i data-lucide="check"></i>
+                    </span>
+                    <span class="survey-consent-text">
+                        Я ознакомлен(а) и даю полное
+                        <a href="#" class="survey-consent-link" data-legal-modal="privacy">согласие на обработку</a>
+                        персональных данных и
+                        <a href="#" class="survey-consent-link" data-legal-modal="b2b">b2b-условия</a>
+                        сервиса ГруззЭксперт
+                    </span>
+                </label>
+            </div>
+
+            <!-- Кнопка отправки -->
+            <button type="submit" id="btnSubmitSurvey" class="btn-submit-survey" disabled>
+                Отправить на модерацию
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="legalConsentModal" class="custom-modal-overlay legal-modal-overlay" onclick="if (event.target === this) closeLegalConsentModal()">
+    <div class="modal-body-wrapper" onclick="event.stopPropagation()">
+        <div class="legal-modal-header">
+            <h3>Пользовательское соглашение и персональные данные</h3>
+            <button type="button" class="legal-modal-close" onclick="closeLegalConsentModal()" aria-label="Закрыть">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="legal-modal-scroll">
+            <h5>1. Общие положения</h5>
+            <p>
+                Настоящее соглашение регулирует порядок использования сервиса ГруззЭксперт исполнителем (далее — «Пользователь»)
+                и условия обработки персональных данных оператором платформы (далее — «Оператор»).
+                Отправляя анкету, Пользователь подтверждает достоверность предоставленных сведений и принимает условия настоящего документа.
+            </p>
+
+            <h5>2. Согласие на обработку персональных данных</h5>
+            <p>Пользователь даёт согласие Оператору на сбор, хранение и обработку следующих персональных данных:</p>
+            <ul>
+                <li>фамилия, имя, отчество (ФИО);</li>
+                <li>дата рождения;</li>
+                <li>номер телефона и иные контактные данные;</li>
+                <li>город и регион выполнения работ;</li>
+                <li>фотографии документов и селфи для верификации личности;</li>
+                <li>сведения об опыте работы и профессиональной деятельности;</li>
+                <li>реквизиты банковской карты для расчётов (при указании в профиле).</li>
+            </ul>
+            <p>
+                Обработка осуществляется в целях регистрации, модерации анкеты, предоставления доступа к заявкам,
+                коммуникации в рамках сервиса, исполнения договорных обязательств и соблюдения требований законодательства
+                Российской Федерации о персональных данных.
+            </p>
+
+            <h5>3. B2B-условия сервиса</h5>
+            <p>
+                ГруззЭксперт предоставляет технологическую платформу для взаимодействия исполнителей с заказчиками и диспетчерами.
+                Пользователь действует как самостоятельный исполнитель и несёт ответственность за качество и своевременность выполнения работ.
+            </p>
+            <ul>
+                <li>доступ к заявкам предоставляется после успешной модерации анкеты;</li>
+                <li>Оператор вправе приостановить или ограничить доступ при нарушении правил сервиса;</li>
+                <li>рейтинг и статистика исполнителя формируются в рамках рабочего пространства компании;</li>
+                <li>конфиденциальная информация клиентов и заявок не подлежит разглашению третьим лицам.</li>
+            </ul>
+
+            <h5>4. Конфиденциальность и безопасность</h5>
+            <p>
+                Оператор принимает организационные и технические меры для защиты персональных данных от неправомерного доступа,
+                уничтожения, изменения, блокирования, копирования и распространения. Доступ к данным имеют только уполномоченные
+                сотрудники и администраторы соответствующего рабочего пространства.
+            </p>
+
+            <h5>5. Права пользователя</h5>
+            <p>
+                Пользователь вправе запросить уточнение, блокирование или удаление персональных данных, а также отозвать согласие
+                на обработку, направив обращение через службу поддержки ГруззЭксперт. Отзыв согласия может повлечь ограничение
+                или прекращение доступа к функциям сервиса.
+            </p>
+
+            <h5>6. Заключительные положения</h5>
+            <p>
+                Актуальная версия соглашения доступна в интерфейсе сервиса. Оператор вправе обновлять документ с уведомлением
+                пользователей через платформу. Продолжение использования сервиса после публикации изменений означает согласие
+                с обновлённой редакцией.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    function previewImage(input, previewId) {
+        var preview = document.getElementById(previewId);
+        if (!preview) return;
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                var box = input.closest('.upload-box');
+                if (box) {
+                    box.style.borderColor = 'var(--success)';
+                    setTimeout(function() { box.style.borderColor = ''; }, 1000);
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    window.previewImage = previewImage;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof refreshIcons === 'function') refreshIcons();
+
+        var consentCheckbox = document.getElementById('surveyConsentCheckbox');
+        var submitBtn = document.getElementById('btnSubmitSurvey');
+        var legalModal = document.getElementById('legalConsentModal');
+        var legalLinks = document.querySelectorAll('[data-legal-modal]');
+        var birthHidden = document.getElementById('survey_birth_date');
+        var ageLabel = document.getElementById('calculated-age');
+        var birthDateError = document.getElementById('birth-date-error');
+
+        function formatAgeLabel(age) {
+            var mod10 = age % 10;
+            var mod100 = age % 100;
+            var word = 'лет';
+            if (mod100 < 11 || mod100 > 14) {
+                if (mod10 === 1) word = 'год';
+                else if (mod10 >= 2 && mod10 <= 4) word = 'года';
+            }
+            return '(' + age + ' ' + word + ')';
+        }
+
+        function calculateAgeFromIso(iso) {
+            if (!iso || !window.GruzzDatePicker) return null;
+            var parsed = GruzzDatePicker.parseIso(iso);
+            if (!parsed) return null;
+            var today = new Date();
+            var age = today.getFullYear() - parsed.year;
+            if (today.getMonth() < parsed.month || (today.getMonth() === parsed.month && today.getDate() < parsed.day)) {
+                age -= 1;
+            }
+            return age;
+        }
+
+        function syncBirthDateState(iso) {
+            var age = iso ? calculateAgeFromIso(iso) : null;
+            if (ageLabel) {
+                ageLabel.textContent = age !== null ? formatAgeLabel(age) : '';
+            }
+            if (birthDateError) {
+                birthDateError.style.display = (age !== null && age < 18) ? 'block' : 'none';
+            }
+            syncSubmitButton();
+        }
+
+        function syncSubmitButton() {
+            if (!submitBtn) return;
+            var consentOk = consentCheckbox && consentCheckbox.checked;
+            var birthIso = birthHidden ? String(birthHidden.value || '').trim() : '';
+            var age = birthIso ? calculateAgeFromIso(birthIso) : null;
+            var ageOk = age !== null && age >= 18;
+            submitBtn.disabled = !(consentOk && ageOk);
+        }
+
+        var birthPickerRoot = document.querySelector('.survey-birth-picker[data-gruzz-date-picker]');
+        if (window.GruzzDatePicker && birthPickerRoot) {
+            var maxBirthYear = new Date().getFullYear() - 18;
+            GruzzDatePicker.init(birthPickerRoot, {
+                changeMonth: true,
+                changeYear: true,
+                yearRange: [1950, maxBirthYear],
+                onSelect: function(iso) {
+                    syncBirthDateState(iso);
+                },
+            });
+        }
+        if (birthHidden) {
+            birthHidden.addEventListener('change', function() {
+                syncBirthDateState(birthHidden.value);
+            });
+        }
+
+        if (consentCheckbox) {
+            consentCheckbox.addEventListener('change', syncSubmitButton);
+        }
+        syncSubmitButton();
+
+        window.openLegalConsentModal = function() {
+            if (!legalModal) return;
+            legalModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            if (typeof refreshIcons === 'function') refreshIcons();
+        };
+
+        window.closeLegalConsentModal = function() {
+            if (!legalModal) return;
+            legalModal.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        legalLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openLegalConsentModal();
+            });
+        });
+
+        if (typeof TomSelect !== 'undefined') {
+            var sortField = { field: 'text', direction: 'asc' };
+
+            var favRenderConfig = {
+                option: function(data, escape) {
+                    var isFav = !!data.isFav;
+                    return '<div class="create-city-option">' +
+                        '<span class="fav-star-btn ' + (isFav ? 'active' : '') + '" data-id="' + escape(data.value) + '" role="button" tabindex="-1" aria-hidden="true">' + (isFav ? '★' : '☆') + '</span>' +
+                        '<span>' + escape(data.text) + '</span>' +
+                        '</div>';
+                },
+                item: function(data, escape) {
+                    return '<div>' + escape(data.text) + '</div>';
+                },
+            };
+
+            function bindFavStarClicks(ts) {
+                ts.dropdown.addEventListener('click', function(e) {
+                    var btn = e.target.closest('.fav-star-btn');
+                    if (!btn) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var cityId = btn.dataset.id;
+                    fetch('/api/favorite-city/' + cityId, { method: 'POST' })
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (ts.options[cityId]) {
+                                ts.options[cityId].isFav = (res.status === 'added');
+                            }
+                            ts.clearCache();
+                            ts.refreshOptions(false);
+                        })
+                        .catch(function() {});
+                });
+            }
+
+            function markFavoriteOptions(ts, selectEl) {
+                Object.keys(ts.options).forEach(function(key) {
+                    var optEl = selectEl.querySelector('option[value="' + key + '"]');
+                    if (optEl) {
+                        ts.options[key].isFav = optEl.dataset.fav === 'true';
+                    }
+                });
+            }
+
+            var citySelect = document.querySelector('#city_id');
+            if (citySelect && !citySelect.tomselect) {
+                new TomSelect(citySelect, {
+                    create: false,
+                    sortField: sortField,
+                    placeholder: 'Начните вводить город...',
+                    maxItems: 1,
+                    render: favRenderConfig,
+                    onInitialize: function() {
+                        markFavoriteOptions(this, citySelect);
+                        bindFavStarClicks(this);
+                    },
+                });
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && legalModal && legalModal.classList.contains('active')) {
+                legalModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        if (typeof showToast === 'function') {
+            showToast({{ message | tojson }}, {{ category | tojson }});
+        }
+        {% endfor %}
+        {% endwith %}
+    });
+})();
+</script>
+{% endblock %}

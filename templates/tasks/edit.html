@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import 
+    form_input, form_textarea, form_select, form_price, button
+%}
+
+{% block title %}Редактировать заявку | GruzzExpert{% endblock %}
+
+{% block extra %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<style>
+/* Стили для страницы редактирования заявки */
+.edit-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Шапка */
+.edit-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
+}
+
+.edit-header-info {
+    flex: 1;
+}
+
+.edit-header-info h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.edit-header-info p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Форма */
+.edit-form {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+}
+
+.form-scroll {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Группа полей */
+.form-group {
+    margin-bottom: var(--space-xl);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.form-label .required {
+    color: var(--danger);
+    margin-left: var(--space-xs);
+}
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    transition: var(--transition-fast);
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(43, 82, 120, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: var(--space-xs);
+}
+
+/* Группа цены */
+.price-input-group {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.price-input-group .form-input {
+    flex: 2;
+}
+
+.calc-btn {
+    padding: 0 var(--space-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calc-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    transform: scale(1.02);
+}
+
+.price-result {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--success);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 14px;
+}
+
+.price-result i {
+    width: 18px;
+    height: 18px;
+    color: var(--success);
+}
+
+.price-result strong {
+    font-size: 18px;
+    color: var(--success);
+    margin-left: var(--space-xs);
+}
+
+/* Переключатель клиента */
+.client-toggle {
+    margin-bottom: var(--space-md);
+}
+
+.client-toggle-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-lg);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.client-toggle-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.client-select-wrapper,
+.client-input-wrapper {
+    margin-top: var(--space-md);
+    animation: fadeIn var(--transition-normal);
+}
+
+/* Статус бар */
+.status-bar {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.status-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 14px;
+}
+
+.status-label i {
+    width: 18px;
+    height: 18px;
+}
+
+.current-status {
+    font-weight: 600;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-full);
+    background: var(--bg-secondary);
+}
+
+/* Кнопка отправки */
+.submit-section {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: var(--space-md);
+}
+
+.submit-btn {
+    flex: 1;
+    padding: var(--space-md);
+    font-size: 16px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    filter: brightness(1.05);
+}
+
+.cancel-btn {
+    flex: 1;
+    padding: var(--space-md);
+    font-size: 16px;
+    font-weight: 600;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+}
+
+.cancel-btn:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .edit-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+    
+    .edit-header-info h3 {
+        font-size: 16px;
+    }
+    
+    .edit-form {
+        padding: var(--space-md);
+    }
+    
+    .form-group {
+        margin-bottom: var(--space-lg);
+    }
+    
+    .form-input, .form-select, .form-textarea {
+        padding: var(--space-sm) var(--space-md);
+        font-size: 14px;
+    }
+    
+    .price-input-group {
+        flex-direction: column;
+    }
+    
+    .calc-btn {
+        padding: var(--space-sm);
+    }
+    
+    .submit-section {
+        flex-direction: column;
+    }
+    
+    .submit-btn, .cancel-btn {
+        padding: var(--space-sm);
+    }
+    
+    .client-toggle-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof TomSelect !== "undefined") {
+        const sortField = { field: "text", direction: "asc" };
+
+        const citySelect = document.querySelector("#city-select");
+        if (citySelect) {
+            new TomSelect(citySelect, {
+                create: false,
+                sortField: sortField,
+                placeholder: "Начните вводить город...",
+                maxItems: 1
+            });
+        }
+
+        const clientSelect = document.querySelector("#client_id");
+        if (clientSelect) {
+            new TomSelect(clientSelect, {
+                create: false,
+                sortField: sortField,
+                maxItems: 1
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
+
+{% block main_content %}
+<div class="edit-container">
+    <!-- Шапка -->
+    <div class="edit-header">
+        <a href="{{ url_for('tasks.tasks_list') }}" class="back-btn">
+            <i data-lucide="chevron-left"></i>
+        </a>
+        <div class="edit-header-info">
+            <h3>Редактировать заявку</h3>
+            {% if task.task_number %}
+            <div class="task-form-number">Заявка № {{ task.task_number }}</div>
+            {% endif %}
+            <p>Измените информацию о заявке</p>
+        </div>
+    </div>
+    
+    <!-- Форма -->
+    <form method="post" class="edit-form" id="editTaskForm">
+        <div class="form-scroll">
+            <!-- Статус бар -->
+            <div class="status-bar">
+                <div class="status-label">
+                    <i data-lucide="flag"></i>
+                    <span>Текущий статус:</span>
+                </div>
+                <div class="current-status">
+                    {% if task.status == 'recruiting' %}🆕 Набор
+                    {% elif task.status == 'in_progress' %}⚡ В работе
+                    {% elif task.status == 'done' %}✅ Завершена
+                    {% elif task.status == 'cancelled' %}❌ Отменена
+                    {% else %}{{ task.status }}
+                    {% endif %}
+                </div>
+                <div class="status-label">
+                    <i data-lucide="calendar"></i>
+                    <span>Создана: {{ task.created_at | format_local_date }}</span>
+                </div>
+            </div>
+            
+            <!-- Название -->
+            {{ form_input(
+                label='Название',
+                name='title',
+                placeholder='Краткое описание работ',
+                value=task.title,
+                required=true,
+                icon='tag'
+            ) }}
+            
+            <!-- Описание -->
+            {{ form_textarea(
+                label='Описание',
+                name='description',
+                placeholder='Подробное описание работ, требования, особые условия...',
+                value=task.description,
+                rows=5,
+                required=true,
+                icon='file-text'
+            ) }}
+            
+            <!-- Город -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="map-pin"></i>
+                    Город
+                </label>
+                <select id="city-select" name="city_id" placeholder="Начните вводить город...">
+                    <option value="">Выберите город</option>
+                    {% for city in cities %}
+                        <option value="{{ city.id }}"
+                                {% if task.city_id and task.city_id|string == city.id|string %}selected{% endif %}
+                                data-fav="{{ 'true' if city.id in (current_user.favorite_cities or []) else 'false' }}">
+                            {{ city.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Адрес объекта -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="home"></i>
+                    Адрес объекта
+                </label>
+                <input type="text"
+                       name="address"
+                       class="form-input"
+                       placeholder="Укажите улицу, номер дома, склад..."
+                       value="{{ task.address if task.address else '' }}"
+                       maxlength="255">
+            </div>
+            
+            <!-- Клиент -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="building"></i>
+                    Клиент
+                </label>
+                <select id="client_id" name="client_id" class="form-select">
+                    <option value="" {% if not task.client_id %}selected{% endif %}>Без клиента / Частное лицо</option>
+                    {% for client in clients %}
+                        <option value="{{ client.id }}" {% if task.client_id == client.id %}selected{% endif %}>
+                            {{ client.name }}
+                        </option>
+                    {% endfor %}
+                    <option value="new">Новый заказчик</option>
+                </select>
+
+                <div id="new_client_group" class="client-input-wrapper" style="display: none;">
+                    <input type="text"
+                           name="client_name"
+                           class="form-input"
+                           placeholder="Название компании"
+                           value="{{ task.client.name if task.client else '' }}"
+                           required>
+                    <div class="form-hint">Укажите название нового заказчика</div>
+                </div>
+            </div>
+            
+            <!-- Оплата -->
+            {% set price_display = task.price|string %}
+            {{ form_price(
+                label='Оплата',
+                name='price',
+                value=price_display,
+                required=true
+            ) }}
+            
+            <!-- Количество исполнителей -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i data-lucide="users"></i>
+                    Количество исполнителей
+                    <span class="required">*</span>
+                </label>
+                <input type="number" 
+                       id="required_workers"
+                       name="required_workers" 
+                       value="{{ task.required_workers }}" 
+                       min="1" 
+                       max="10" 
+                       class="form-input"
+                       required>
+                <div class="form-hint">Сколько человек нужно на эту заявку</div>
+            </div>
+
+            <!-- Автосоздание чата -->
+            <div class="form-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" name="auto_chat" value="1" {% if task.auto_chat %}checked{% endif %}>
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">
+                        <i data-lucide="message-circle"></i>
+                        Создать групповой чат для заявки
+                    </span>
+                </label>
+                <div class="form-hint">При сохранении автоматически создастся чат для координации исполнителей</div>
+            </div>
+            
+            <!-- Дата выполнения -->
+            <div class="form-group deadline-group" data-deadline-group>
+                <label class="form-label">
+                    <i data-lucide="calendar"></i>
+                    Дата выполнения
+                </label>
+                <div class="gruzz-date-picker" data-gruzz-date-picker>
+                    <input type="hidden"
+                           name="execution_date"
+                           value="{{ task.execution_date.strftime('%Y-%m-%d') if task.execution_date else '' }}">
+                    <button type="button" class="gruzz-date-trigger form-input">
+                        <span class="gruzz-date-display is-placeholder">Выберите дату</span>
+                        <i data-lucide="calendar"></i>
+                    </button>
+                    <div class="custom-datepicker gruzz-date-dropdown" style="display: none;"></div>
+                </div>
+                <div class="deadline-time-controls">
+                    <div class="deadline-time-row">
+                        <input type="text"
+                               id="execution_time"
+                               name="execution_time"
+                               class="form-input deadline-time-input"
+                               value="{{ task.execution_time.strftime('%H:%M') if task.execution_time else '08:00' }}"
+                               placeholder="08:00"
+                               inputmode="numeric"
+                               maxlength="5"
+                               autocomplete="off">
+                        <div class="deadline-quick-actions">
+                            <button type="button" class="deadline-quick-btn" data-deadline-today>Сегодня</button>
+                            <button type="button" class="deadline-quick-btn" data-deadline-tomorrow>Завтра</button>
+                        </div>
+                    </div>
+                    <div class="deadline-hours-scroll">
+                        {% for hour in range(8, 23) %}
+                        <button type="button"
+                                class="time-chip{% if (task.execution_time and task.execution_time.hour == hour) or (not task.execution_time and hour == 8) %} active{% endif %}"
+                                data-hour="{{ hour }}">{{ hour }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="form-hint">Укажите дату и время выполнения (необязательно)</div>
+            </div>
+            
+            <!-- Кнопки -->
+            <div class="submit-section">
+                <button type="submit" class="submit-btn">
+                    Сохранить изменения
+                </button>
+                <a href="{{ url_for('tasks.tasks_list') }}" class="cancel-btn">
+                    Отмена
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

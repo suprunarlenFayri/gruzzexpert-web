@@ -1,0 +1,783 @@
+{% extends "base.html" %}
+{% from 'macros/ui.html' import b2b_select %}
+
+{% block title %}Настройки | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+.settings-page {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 24px;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    --accent-color: var(--accent, #2b5278);
+}
+
+.settings-page-header {
+    margin-bottom: 4px;
+}
+
+.settings-page-header h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.settings-page-header p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.settings-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+}
+
+.settings-card-title {
+    margin: 0 0 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-card-title i {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+}
+
+.settings-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.settings-row:first-child {
+    padding-top: 0;
+}
+
+.settings-hash-target {
+    scroll-margin-top: 24px;
+    border-radius: var(--radius-md);
+    transition: background 0.35s ease;
+}
+
+.settings-hash-target.settings-hash-highlight {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.settings-row-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-row-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+}
+
+.settings-row-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.settings-row-control {
+    flex-shrink: 0;
+}
+
+.settings-segmented {
+    display: inline-flex;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    gap: 2px;
+}
+
+.settings-segmented label {
+    position: relative;
+    cursor: pointer;
+}
+
+.settings-segmented input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.settings-segmented span {
+    display: block;
+    padding: 7px 12px;
+    border-radius: calc(var(--radius-md) - 2px);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-segmented input:checked + span {
+    background: var(--accent);
+    color: #fff;
+}
+
+.settings-segmented input:focus-visible + span {
+    outline: 2px solid var(--accent-light);
+    outline-offset: 1px;
+}
+
+.settings-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.settings-notice i {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--text-muted);
+}
+
+.settings-notice--info {
+    border-color: rgba(43, 82, 120, 0.45);
+    color: var(--text-primary);
+}
+
+.settings-muted-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--warning);
+    font-weight: 500;
+}
+
+.settings-muted-countdown {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.settings-privacy-note {
+    margin: 0 0 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.settings-profile-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.settings-text-input {
+    width: min(220px, 100%);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.settings-text-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.settings-btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none !important;
+    transition: opacity 0.2s ease;
+}
+
+.settings-btn-link:hover {
+    opacity: 0.8;
+    text-decoration: none !important;
+}
+
+.settings-btn-danger {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.settings-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.settings-freeze-banner {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    color: var(--warning);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.session-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+}
+
+.session-item.is-current {
+    border-color: rgba(43, 82, 120, 0.55);
+}
+
+.session-item-main {
+    min-width: 0;
+}
+
+.session-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.session-item-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.session-badge {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(43, 82, 120, 0.2);
+    color: var(--accent);
+}
+
+/* ——— Security modals: layout (colors → style.css tokens) ——— */
+.settings-modal-content .settings-modal-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.settings-modal-content .settings-modal-field {
+    margin-bottom: 14px;
+}
+
+.settings-modal-content .settings-modal-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.settings-modal-content .settings-modal-email-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.settings-modal-content .settings-modal-email-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-modal-content .settings-modal-dev-hint {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent, #2b5278) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent, #2b5278) 28%, transparent);
+    font-size: 12px;
+    color: color-mix(in srgb, var(--modal-text) 70%, transparent);
+    line-height: 1.5;
+}
+
+.settings-modal-content .settings-modal-dev-hint code {
+    color: var(--accent, #2b5278);
+    font-weight: 600;
+}
+
+.settings-modal-content .btn-group-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+    gap: 12px !important;
+    margin-top: 15px !important;
+    margin-bottom: 15px !important;
+}
+
+.settings-modal-content button,
+.settings-modal-content .btn-security-action {
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    font-family: inherit !important;
+    white-space: nowrap !important;
+    height: auto !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.settings-modal-content .btn-accent:hover,
+.settings-modal-content .btn-primary:hover {
+    filter: brightness(1.12) !important;
+}
+
+.settings-modal-content .link-no-access,
+.settings-modal-content .settings-modal-email-row .link-no-access {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 0.8rem !important;
+    align-self: flex-start;
+    margin: 4px 0 8px;
+}
+
+.settings-modal-content .settings-modal-email-row .link-no-access {
+    margin: 0;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+@media (max-width: 640px) {
+    .settings-page {
+        padding: 16px;
+    }
+
+    .settings-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .settings-segmented {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .settings-segmented span {
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% set privacy_visibility_options = [
+    {'value': 'everyone', 'label': 'Все'},
+    {'value': 'contacts', 'label': 'Только контакты'},
+    {'value': 'nobody', 'label': 'Никто'}
+] %}
+{% set phone_privacy_options = [
+    {'value': 'all', 'label': 'Все'},
+    {'value': 'contacts', 'label': 'Мои контакты'},
+    {'value': 'none', 'label': 'Никто'}
+] %}
+
+{% block main_content %}
+<!-- Mobile back bar -->
+<div class="mobile-back-bar">
+    <a href="/chats" class="mobile-back-btn" aria-label="Назад">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 19L8 12L15 5" />
+        </svg>
+    </a>
+</div>
+
+<div class="settings-page settings-page-container" id="settings-page">
+    <div class="settings-page-header">
+        <h1>Настройки</h1>
+        <p>Конфиденциальность, чаты и уведомления — изменения сохраняются автоматически.</p>
+    </div>
+
+    <section class="settings-card">
+        <h2 class="settings-card-title">
+            <i data-lucide="user"></i>
+            Профиль и безопасность
+        </h2>
+        {% if is_balance_frozen %}
+        <div class="settings-freeze-banner" id="balance-freeze-banner">
+            Баланс заморожен до {{ frozen_until.strftime('%d.%m.%Y %H:%M') if frozen_until else '—' }}.
+            Вывод средств временно недоступен после смены критических данных.
+        </div>
+        {% endif %}
+        <div class="settings-rows">
+            <div class="settings-row settings-hash-target" id="username-block">
+                <div class="settings-row-text">
+                    <div class="settings-row-label text-muted" style="color: var(--text-secondary); font-weight: 500;">Юзернейм</div>
+                    <div class="settings-row-hint">Для поиска сотрудников без показа номера телефона.</div>
+                </div>
+                <div class="settings-row-control">
+                    <input type="text"
+                           class="settings-text-input"
+                           id="settings-username-input"
+                           placeholder="username"
+                           autocomplete="off"
+                           spellcheck="false"
+                           maxlength="32"
+                           value="{{ settings.username or '' }}"
+                           data-setting-key="username">
+                </div>
+            </div>
+            <div class="settings-row settings-hash-target" id="tag-block">
+                <div class="settings-row-text">
+                    <div class="settings-row-label text-muted" style="color: var(--text-secondary); font-weight: 500;">Тег</div>
+                    <div class="settings-profile-value" id="settings-current-tag" style="font-weight: 600;">{% if current_user.tag %}@{{ current_user.tag }}{% else %}—{% endif %}</div>
+                </div>
+                <div class="settings-row-control">
+                    <button type="button" class="settings-btn-link" id="btn-open-tag-change">Изменить тег</button>
+                </div>
+            </div>
+            <div class="settings-row settings-hash-target" id="phone-block">
+                <div class="settings-row-text">
+                    <div class="settings-row-label text-muted" style="color: var(--text-secondary); font-weight: 500;">Номер телефона</div>
+                    <div class="settings-profile-value" id="settings-current-phone" style="font-weight: 600;">{{ current_user.phone }}</div>
+                    {% if current_user.email %}
+                    <div class="settings-row-hint" style="margin-top:6px;">Email: {{ current_user.email }}</div>
+                    {% endif %}
+                </div>
+                <div class="settings-row-control">
+                    <button type="button" class="settings-btn-link" id="btn-open-phone-change">Изменить номер</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="settings-card">
+        <h2 class="settings-card-title">
+            <i data-lucide="monitor-smartphone"></i>
+            Активные сессии
+        </h2>
+        <p class="settings-privacy-note">Устройства, с которых выполнен вход в аккаунт. Завершите лишние сессии при подозрении на взлом.</p>
+        <div class="session-list" id="active-sessions-list">
+            <div class="settings-row-hint">Загрузка…</div>
+        </div>
+        <button type="button" class="settings-btn-danger" id="btn-revoke-sessions">Завершить все остальные сессии</button>
+    </section>
+
+    <section class="settings-card">
+        <h2 class="settings-card-title">
+            <i data-lucide="shield"></i>
+            Конфиденциальность
+        </h2>
+        {% if is_worker %}
+        <p class="settings-privacy-note">Важно: диспетчеры, бригадиры, менеджеры и руководство компании всегда видят ваши данные для координации работы по заявкам.</p>
+        {% endif %}
+        <div class="settings-rows">
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Кто видит мой номер телефона</div>
+                    <div class="settings-row-hint">Отображение номера в публичном профиле мессенджера.</div>
+                </div>
+                <div class="settings-row-control">
+                    {{ b2b_select(phone_privacy_options, settings.phone_privacy, setting_key='phone_privacy') }}
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Кто может найти меня по номеру</div>
+                    <div class="settings-row-hint">Поиск по телефону в мессенджере.</div>
+                </div>
+                <div class="settings-row-control">
+                    {{ b2b_select(privacy_visibility_options, settings.privacy_phone_search, setting_key='privacy_phone_search') }}
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Кто видит мою дату рождения</div>
+                    <div class="settings-row-hint">Отображается в профиле и карточках пользователей.</div>
+                </div>
+                <div class="settings-row-control">
+                    {{ b2b_select(privacy_visibility_options, settings.privacy_birth_visibility, setting_key='privacy_birth_visibility') }}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="settings-card">
+        <h2 class="settings-card-title">
+            <i data-lucide="message-square"></i>
+            Настройки чатов
+        </h2>
+        <div class="settings-rows">
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Звуковые уведомления о новых сообщениях</div>
+                    <div class="settings-row-hint">Короткий сигнал при входящем сообщении вне активного чата.</div>
+                </div>
+                <div class="settings-row-control">
+                    <label class="toggle-switch" aria-label="Звуковые уведомления">
+                        <input type="checkbox"
+                               data-setting-key="chat_sound_enabled"
+                               {% if settings.chat_sound_enabled %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Отправка сообщений</div>
+                    <div class="settings-row-hint">Shift+Enter всегда переносит строку.</div>
+                </div>
+                <div class="settings-row-control">
+                    <div class="settings-segmented" role="group" aria-label="Отправка сообщений">
+                        <label>
+                            <input type="radio"
+                                   name="send_by_enter"
+                                   value="1"
+                                   data-setting-key="send_by_enter"
+                                   {% if settings.send_by_enter %}checked{% endif %}>
+                            <span>Enter</span>
+                        </label>
+                        <label>
+                            <input type="radio"
+                                   name="send_by_enter"
+                                   value="0"
+                                   data-setting-key="send_by_enter"
+                                   {% if not settings.send_by_enter %}checked{% endif %}>
+                            <span>Ctrl+Enter</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="settings-card">
+        <h2 class="settings-card-title">
+            <i data-lucide="bell"></i>
+            Уведомления по заявкам
+        </h2>
+        {% if is_worker %}
+        <div class="settings-rows">
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Отключить уведомления на 24 часа</div>
+                    <div class="settings-row-hint">Временный режим тишины. Навсегда отключить push по заявкам нельзя.</div>
+                    <div class="settings-muted-status" id="tasks-mute-status" {% if not tasks_muted_active %}hidden{% endif %}>
+                        Уведомления выключены до: <span id="tasks-mute-until-label">—</span>
+                    </div>
+                    <div class="settings-muted-countdown" id="tasks-mute-countdown" {% if not tasks_muted_active %}hidden{% endif %}></div>
+                </div>
+                <div class="settings-row-control">
+                    <label class="toggle-switch" aria-label="Отключить уведомления на 24 часа">
+                        <input type="checkbox"
+                               id="tasks-sleep-toggle"
+                               data-setting-key="tasks_sleep_mode"
+                               {% if tasks_muted_active %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="settings-rows">
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Новые заявки</div>
+                    <div class="settings-row-hint">Push при создании заявки и повторном наборе исполнителей.</div>
+                </div>
+                <div class="settings-row-control">
+                    <label class="toggle-switch" aria-label="Новые заявки">
+                        <input type="checkbox"
+                               data-setting-key="notify_new_tasks"
+                               {% if settings.notify_new_tasks %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Изменение статусов</div>
+                    <div class="settings-row-hint">«В пути», «На месте» и обновления по заявкам.</div>
+                </div>
+                <div class="settings-row-control">
+                    <label class="toggle-switch" aria-label="Изменение статусов">
+                        <input type="checkbox"
+                               data-setting-key="notify_status_changes"
+                               {% if settings.notify_status_changes %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <div class="settings-row-label">Системные алерты</div>
+                    <div class="settings-row-hint">Напоминания по «В пути», снятие с заявки и срочные сигналы.</div>
+                </div>
+                <div class="settings-row-control">
+                    <label class="toggle-switch" aria-label="Системные алерты">
+                        <input type="checkbox"
+                               data-setting-key="notify_system_alerts"
+                               {% if settings.notify_system_alerts %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<div id="phoneChangeModal" class="custom-modal-overlay" onclick="if (event.target === this) window.closePhoneChangeModal()">
+    <div class="modal-body-wrapper settings-modal-content modal-crypto-security" onclick="event.stopPropagation()">
+        <h3 class="modal-title">Изменение номера телефона</h3>
+        <div class="settings-modal-step" id="phoneChangeStep1">
+            <div class="settings-modal-field">
+                <label for="phoneChangeNew">Новый номер телефона</label>
+                <input type="tel" id="phoneChangeNew" placeholder="+7 XXX XXX XX XX">
+            </div>
+            <div class="btn-group-row">
+                <button type="button" class="btn-cancel btn-secondary" onclick="window.closePhoneChangeModal()">Отмена</button>
+                <button type="button" class="btn-accent btn-primary" id="btnPhoneChangeGetCodes">Получить коды</button>
+            </div>
+        </div>
+        <div class="settings-modal-step" id="phoneChangeStep2" hidden>
+            <div class="settings-modal-dev-hint" id="phoneChangeDevHint" hidden></div>
+            <div class="settings-modal-field">
+                <label for="phoneChangeOldSms">Код из СМС со старого номера</label>
+                <input type="text" id="phoneChangeOldSms" inputmode="numeric" maxlength="6" placeholder="000000">
+            </div>
+            <div class="settings-modal-field">
+                <label for="phoneChangeNewSms">Код из СМС с нового номера</label>
+                <input type="text" id="phoneChangeNewSms" inputmode="numeric" maxlength="6" placeholder="000000">
+            </div>
+            <div class="settings-modal-field">
+                <label for="phoneChangeEmail">Код подтверждения из Email</label>
+                <div class="settings-modal-email-row">
+                    <input type="text" id="phoneChangeEmail" inputmode="numeric" maxlength="6" placeholder="000000">
+                    <button type="button" class="link-no-access" id="btnResendEmailCode">Получить код на почту</button>
+                </div>
+            </div>
+            <button type="button" class="link-no-access" id="btnPhoneRecovery">Нет доступа к старому номеру</button>
+            <div class="btn-group-row">
+                <button type="button" class="btn-cancel btn-secondary" id="btnPhoneChangeBack">Назад</button>
+                <button type="button" class="btn-accent btn-primary" id="btnPhoneChangeConfirm">Подтвердить смену</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tagChangeModal" class="custom-modal-overlay" onclick="if (event.target === this) window.closeTagChangeModal()">
+    <div class="modal-body-wrapper settings-modal-content modal-crypto-security" onclick="event.stopPropagation()">
+        <h3 class="modal-title">Изменение системного тега</h3>
+        <div class="settings-modal-step" id="tagChangeStep1">
+            <div class="settings-modal-field">
+                <label for="tagChangeNew">Новый тег</label>
+                <input type="text" id="tagChangeNew" placeholder="@username" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="btn-group-row">
+                <button type="button" class="btn-cancel btn-secondary" onclick="window.closeTagChangeModal()">Отмена</button>
+                <button type="button" class="btn-accent btn-primary" id="btnTagChangeGetCodes">Получить коды</button>
+            </div>
+        </div>
+        <div class="settings-modal-step" id="tagChangeStep2" hidden>
+            <div class="settings-modal-dev-hint" id="tagChangeDevHint" hidden></div>
+            <div class="settings-modal-field">
+                <label for="tagChangeOldSms">Код из СМС со старого номера</label>
+                <input type="text" id="tagChangeOldSms" inputmode="numeric" maxlength="6" placeholder="000000">
+            </div>
+            <div class="settings-modal-field">
+                <label for="tagChangeNewSms">Код из СМС с нового номера</label>
+                <input type="text" id="tagChangeNewSms" inputmode="numeric" maxlength="6" placeholder="000000">
+            </div>
+            <div class="settings-modal-field">
+                <label for="tagChangeEmail">Код подтверждения из Email</label>
+                <div class="settings-modal-email-row">
+                    <input type="text" id="tagChangeEmail" inputmode="numeric" maxlength="6" placeholder="000000">
+                    <button type="button" class="link-no-access" id="btnTagResendEmailCode">Получить код на почту</button>
+                </div>
+            </div>
+            <button type="button" class="link-no-access" id="btnTagRecovery">Нет доступа к старому номеру</button>
+            <div class="btn-group-row">
+                <button type="button" class="btn-cancel btn-secondary" id="btnTagChangeBack">Назад</button>
+                <button type="button" class="btn-accent btn-primary" id="btnTagChangeConfirm">Подтвердить смену</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_worker %}
+<script>
+    window.INITIAL_TASKS_MUTED_UNTIL = {{ tasks_muted_until | tojson }};
+</script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/settings-security.js') }}"></script>
+{% endblock %}

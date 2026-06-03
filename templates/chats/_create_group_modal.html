@@ -1,0 +1,42 @@
+<div id="createGroupModal" class="custom-modal-overlay b2b-modal-overlay" hidden onclick="if (event.target === this) closeCreateGroupModal()">
+    <div class="modal-body-wrapper forward-modal-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Создать группу</h3>
+            <button type="button" class="close-modal-btn" onclick="closeCreateGroupModal()" aria-label="Закрыть">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="modal-content">
+            <label class="forward-modal-label" for="groupNameInput">Название группы</label>
+            <input type="text" id="groupNameInput" class="b2b-input forward-search-input" placeholder="Например: Рабочий чат" autocomplete="off">
+
+            <p class="forward-modal-label" style="margin-top: 16px;">Выберите участников</p>
+            <input type="text" id="groupUserSearch" class="b2b-input forward-search-input" placeholder="Поиск по имени..." autocomplete="off">
+            <div id="group-users-list" class="forward-users-list group-users-list b2b-picker-list" role="listbox" aria-multiselectable="true">
+                {% for u in all_users %}
+                <button type="button"
+                        class="forward-user-item b2b-picker-item group-user-item"
+                        data-user-id="{{ u.id }}"
+                        data-search-name="{{ (u.name or '')|lower }}"
+                        role="option"
+                        aria-selected="false">
+                    <span class="forward-user-avatar">
+                        {% if u.avatar %}
+                        <img src="{{ url_for('uploaded_file', filename=u.avatar) }}" alt="" class="forward-user-avatar-img">
+                        {% else %}
+                        <span class="forward-user-avatar-initials">{{ u.name[0]|upper if u.name else '?' }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="forward-user-name user-name">{{ u.name }}</span>
+                </button>
+                {% else %}
+                <div class="forward-users-empty group-users-empty">Нет доступных контактов</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="modal-footer forward-modal-footer">
+            <button type="button" class="forward-btn forward-btn-cancel" onclick="closeCreateGroupModal()">Отмена</button>
+            <button type="button" class="forward-btn forward-btn-submit create-group-submit-btn" id="create-group-submit-btn" disabled onclick="submitCreateGroup()">Создать</button>
+        </div>
+    </div>
+</div>

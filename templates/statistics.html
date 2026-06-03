@@ -1,0 +1,758 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import avatar, button, status_badge, empty_state %}
+
+{% block title %}Статистика | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+/* ===== СТИЛИ ДЛЯ СТАТИСТИКИ ===== */
+
+/* Контейнер */
+.statistics-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Шапка */
+.statistics-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.statistics-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.statistics-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Основной контент */
+.statistics-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+}
+
+/* Сетка карточек */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+/* Карточка статистики */
+.stat-card,
+.stat-card-link {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: var(--space-xl);
+    text-align: center;
+    transition: var(--transition-normal);
+}
+
+.stat-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.stat-card:hover,
+.stat-card-link:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-hover);
+}
+
+.stat-number.danger {
+    color: var(--danger);
+}
+
+.stat-number {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.2;
+    margin-bottom: var(--space-sm);
+}
+
+.stat-number.success {
+    color: var(--success);
+}
+
+.stat-number.warning {
+    color: var(--warning);
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.stat-label i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Карточка с активностью */
+.activity-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: var(--space-xl);
+}
+
+.activity-header {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.activity-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.activity-header i {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+}
+
+.activity-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.activity-period-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.activity-period-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: calc(var(--radius-md) - 2px);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    font-family: inherit;
+}
+
+.activity-period-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.activity-period-btn.active {
+    background: var(--accent-gradient);
+    color: #fff;
+}
+
+.activity-body {
+    padding: var(--space-xl);
+}
+
+.activity-chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+.activity-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 16px;
+    justify-content: center;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-dot.total { background: #3b82f6; }
+.legend-dot.completed { background: var(--success); }
+.legend-dot.missed { background: var(--danger); }
+
+/* Сетка карточек исполнителей */
+.workers-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 16px !important;
+    padding: 16px 0 !important;
+}
+
+.worker-card {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: all 0.2s ease-in-out !important;
+    position: relative !important;
+}
+
+.worker-card:hover {
+    transform: translateY(-2px) !important;
+    border-color: var(--accent) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.worker-card-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding-right: 72px !important;
+}
+
+.worker-card-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    min-width: 0 !important;
+}
+
+.worker-card-name {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.worker-card-role {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+}
+
+.worker-card-tag {
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+}
+
+.worker-card-stats {
+    display: flex !important;
+    justify-content: space-between !important;
+    background: var(--bg-tertiary) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 10px !important;
+    font-size: 13px !important;
+}
+
+.stat-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    flex: 1 !important;
+}
+
+.stat-box .num { font-weight: 700 !important; }
+.stat-box .num.success { color: var(--success) !important; }
+.stat-box .num.danger { color: var(--danger) !important; }
+.stat-box .num.accent { color: var(--accent) !important; }
+.stat-box .label { color: var(--text-secondary) !important; font-size: 11px !important; }
+
+.worker-card-cities {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    max-height: 52px !important;
+    overflow: hidden !important;
+}
+
+.city-tag {
+    background: rgba(var(--accent-rgb), 0.1) !important;
+    color: var(--accent) !important;
+    padding: 2px 8px !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+}
+
+.worker-card-rating {
+    position: absolute !important;
+    top: 16px !important;
+    right: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    background: rgba(255, 193, 7, 0.15) !important;
+    color: #ffc107 !important;
+    padding: 4px 8px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+.rating-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+}
+
+.rating-header {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.rating-header i {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+}
+
+.rating-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.rating-body {
+    padding: var(--space-lg) var(--space-xl) var(--space-xl);
+}
+
+.workers-empty-hint {
+    padding: var(--space-md) var(--space-xl);
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .statistics-header {
+        padding: var(--space-sm) var(--space-lg);
+    }
+    
+    .statistics-content {
+        padding: var(--space-md);
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+    }
+    
+    .stat-number {
+        font-size: 32px;
+    }
+    
+    .activity-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    .activity-period-btn {
+        padding: 7px 10px;
+        font-size: 11px;
+    }
+    
+    .activity-body {
+        padding: var(--space-lg);
+    }
+
+    .activity-chart-wrap {
+        height: 260px;
+    }
+
+    .rating-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    .rating-body {
+        padding: var(--space-md);
+    }
+
+    .workers-grid {
+        grid-template-columns: 1fr !important;
+        padding: 8px 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .activity-period-switch {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .activity-period-btn {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+/* Анимация появления */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card,
+.stat-card-link {
+    animation: fadeInUp var(--transition-normal) backwards;
+}
+.stat-card:nth-child(1),
+.stat-card-link:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2),
+.stat-card-link:nth-child(2) { animation-delay: 0.10s; }
+.stat-card:nth-child(3),
+.stat-card-link:nth-child(3) { animation-delay: 0.15s; }
+.stat-card:nth-child(4),
+.stat-card-link:nth-child(4) { animation-delay: 0.20s; }
+
+.activity-card {
+    animation: fadeInUp var(--transition-normal) 0.20s backwards;
+}
+
+.rating-card {
+    animation: fadeInUp var(--transition-normal) 0.30s backwards;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<!-- Mobile back bar -->
+<div class="mobile-back-bar">
+    <a href="/" class="mobile-back-btn" aria-label="Назад">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 19L8 12L15 5" />
+        </svg>
+    </a>
+</div>
+<div class="statistics-container">
+    <!-- Шапка -->
+    <div class="statistics-header">
+        <h3>Статистика</h3>
+        <p>Аналитика по заявкам и рейтингам исполнителей</p>
+    </div>
+    
+    <div class="statistics-content">
+        <!-- Карточки с общей статистикой -->
+        <div class="stats-grid">
+            <a href="{{ url_for('tasks.tasks_list') }}" class="stat-card-link">
+                <div class="stat-number">{{ total_tasks }}</div>
+                <div class="stat-label">
+                    <i data-lucide="clipboard-list"></i>
+                    Всего
+                </div>
+            </a>
+            <a href="{{ url_for('tasks.tasks_list', status='done') }}" class="stat-card-link">
+                <div class="stat-number success">{{ completed_tasks }}</div>
+                <div class="stat-label">
+                    <i data-lucide="check-circle"></i>
+                    Выполнено
+                </div>
+            </a>
+            <a href="{{ url_for('tasks.tasks_list', status='in_progress') }}" class="stat-card-link">
+                <div class="stat-number warning">{{ in_progress_tasks }}</div>
+                <div class="stat-label">
+                    <i data-lucide="loader"></i>
+                    В работе
+                </div>
+            </a>
+            <a href="{{ url_for('tasks.tasks_list', status='failed') }}" class="stat-card-link">
+                <div class="stat-number danger">{{ missed_tasks }}</div>
+                <div class="stat-label">
+                    <i data-lucide="x-circle"></i>
+                    Пропущенные
+                </div>
+            </a>
+        </div>
+        
+        <!-- Диаграмма активности -->
+        <div class="activity-card">
+            <div class="activity-header">
+                <div class="activity-header-left">
+                    <i data-lucide="bar-chart-2"></i>
+                    <h4>Активность</h4>
+                </div>
+                <div class="activity-period-switch" role="tablist" aria-label="Период активности">
+                    <button type="button" class="activity-period-btn" data-period="year">Год</button>
+                    <button type="button" class="activity-period-btn active" data-period="month">Месяц</button>
+                    <button type="button" class="activity-period-btn" data-period="day">День</button>
+                </div>
+            </div>
+            <div class="activity-body">
+                <div class="activity-chart-wrap">
+                    <canvas id="activityChart" aria-label="Диаграмма активности заявок"></canvas>
+                </div>
+                <div class="activity-chart-legend">
+                    <span class="legend-item"><span class="legend-dot total"></span> Всего</span>
+                    <span class="legend-item"><span class="legend-dot completed"></span> Выполненные</span>
+                    <span class="legend-item"><span class="legend-dot missed"></span> Пропущенные</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Рейтинг исполнителей — карточки -->
+        {% if worker_stats %}
+        <div class="rating-card">
+            <div class="rating-header">
+                <i data-lucide="trophy"></i>
+                <h4>Рейтинг исполнителей</h4>
+            </div>
+            <div class="rating-body">
+                <div class="workers-grid">
+                    {% for worker in worker_stats|sort(attribute='rating', reverse=true) %}
+                    <div class="worker-card">
+                        <div class="worker-card-rating">
+                            <i data-lucide="star" style="width: 12px; height: 12px;"></i>
+                            {{ "%.1f"|format(worker.rating) }}
+                        </div>
+                        <div class="worker-card-header">
+                            {{ avatar(worker.user, 40, true) }}
+                            <div class="worker-card-info">
+                                <div class="worker-card-name profile-trigger" data-profile-user-id="{{ worker.user.id }}" data-profile-context="worker" role="button" tabindex="0" title="Профиль">{{ worker.name }}</div>
+                                <span class="worker-card-role">Исполнитель</span>
+                            </div>
+                        </div>
+                        <div class="worker-card-stats">
+                            <div class="stat-box">
+                                <span class="num success">{{ worker.completed }}</span>
+                                <span class="label">Выполнено</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="num danger">{{ worker.missed }}</span>
+                                <span class="label">Пропущено</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="num accent">{{ worker.total }}</span>
+                                <span class="label">Всего</span>
+                            </div>
+                        </div>
+                        {% if worker.cities %}
+                        <div class="worker-card-cities">
+                            {% for city_name in worker.cities %}
+                            <span class="city-tag">{{ city_name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+            {{ empty_state(
+                'Нет данных',
+                'Статистика по исполнителям пока недоступна',
+                'bar-chart',
+                'Обновить',
+                url_for('statistics.statistics'),
+                'refresh-cw'
+            ) }}
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const ACTIVITY_CHART_DATA = {{ activity_chart_data | tojson }};
+
+const ACTIVITY_COLORS = {
+    total: '#3b82f6',
+    completed: '#22c55e',
+    missed: '#ef4444',
+};
+
+let activityChart = null;
+let currentActivityPeriod = 'month';
+
+function getThemeColors() {
+    const styles = getComputedStyle(document.documentElement);
+    return {
+        text: styles.getPropertyValue('--text-secondary').trim() || '#94a3b8',
+        grid: styles.getPropertyValue('--border').trim() || 'rgba(148, 163, 184, 0.2)',
+        tooltipBg: styles.getPropertyValue('--bg-secondary').trim() || '#1e293b',
+        tooltipText: styles.getPropertyValue('--text-primary').trim() || '#f8fafc',
+    };
+}
+
+function buildActivityChartConfig(period) {
+    const rows = ACTIVITY_CHART_DATA[period] || [];
+    const theme = getThemeColors();
+
+    return {
+        type: 'line',
+        data: {
+            labels: rows.map(row => row.label),
+            datasets: [
+                {
+                    label: 'Всего',
+                    data: rows.map(row => row.total),
+                    borderColor: ACTIVITY_COLORS.total,
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                    pointBackgroundColor: ACTIVITY_COLORS.total,
+                    pointBorderColor: ACTIVITY_COLORS.total,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                    tension: 0.35,
+                    fill: false,
+                },
+                {
+                    label: 'Выполненные',
+                    data: rows.map(row => row.completed),
+                    borderColor: ACTIVITY_COLORS.completed,
+                    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                    pointBackgroundColor: ACTIVITY_COLORS.completed,
+                    pointBorderColor: ACTIVITY_COLORS.completed,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                    tension: 0.35,
+                    fill: false,
+                },
+                {
+                    label: 'Пропущенные',
+                    data: rows.map(row => row.missed),
+                    borderColor: ACTIVITY_COLORS.missed,
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    pointBackgroundColor: ACTIVITY_COLORS.missed,
+                    pointBorderColor: ACTIVITY_COLORS.missed,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2,
+                    tension: 0.35,
+                    fill: false,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: theme.tooltipBg,
+                    titleColor: theme.tooltipText,
+                    bodyColor: theme.tooltipText,
+                    borderColor: theme.grid,
+                    borderWidth: 1,
+                    padding: 12,
+                    callbacks: {
+                        label(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: theme.text,
+                        maxRotation: 45,
+                        minRotation: 0,
+                    },
+                    grid: {
+                        color: theme.grid,
+                        drawBorder: false,
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: theme.text,
+                        precision: 0,
+                    },
+                    grid: {
+                        color: theme.grid,
+                        drawBorder: false,
+                    },
+                },
+            },
+        },
+    };
+}
+
+function renderActivityChart(period) {
+    const canvas = document.getElementById('activityChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    currentActivityPeriod = period;
+    const config = buildActivityChartConfig(period);
+
+    if (activityChart) {
+        activityChart.destroy();
+    }
+    activityChart = new Chart(canvas.getContext('2d'), config);
+}
+
+function initActivityPeriodSwitch() {
+    document.querySelectorAll('.activity-period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const period = btn.dataset.period;
+            if (!period || period === currentActivityPeriod) return;
+
+            document.querySelectorAll('.activity-period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderActivityChart(period);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderActivityChart('month');
+    initActivityPeriodSwitch();
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+</script>
+{% endblock %}

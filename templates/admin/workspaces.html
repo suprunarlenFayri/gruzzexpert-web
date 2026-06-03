@@ -1,0 +1,1366 @@
+{% extends "admin/_layout.html" %}
+
+
+
+{% block admin_extra %}
+
+<style>
+
+.workspaces-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+
+    gap: 16px;
+
+    padding: 24px;
+
+}
+
+
+
+.workspace-card {
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-lg);
+
+    padding: 18px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+    cursor: pointer;
+
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+
+}
+
+
+
+.workspace-card:hover {
+
+    border-color: var(--accent);
+
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+
+    transform: translateY(-1px);
+
+}
+
+
+
+.workspace-card h4 {
+
+    margin: 0;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+}
+
+
+
+.workspace-meta {
+
+    display: grid;
+
+    gap: 6px;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+}
+
+
+
+.workspace-stats {
+
+    display: flex;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+
+    font-size: 12px;
+
+}
+
+
+
+.workspace-stat {
+
+    background: var(--bg-tertiary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    padding: 6px 10px;
+
+}
+
+
+
+.workspace-card-hint {
+
+    font-size: 11px;
+
+    color: var(--text-muted);
+
+    margin: 0;
+
+}
+
+
+
+.create-workspace-card {
+
+    background: var(--bg-secondary);
+
+    border: 1px dashed var(--border);
+
+    border-radius: var(--radius-lg);
+
+    padding: 18px;
+
+    cursor: default;
+
+}
+
+
+
+.create-workspace-card:hover {
+
+    transform: none;
+
+    box-shadow: none;
+
+    border-color: var(--border);
+
+}
+
+
+
+.create-workspace-card h4 {
+
+    margin: 0 0 12px;
+
+    font-size: 15px;
+
+}
+
+
+
+.workspace-form {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+}
+
+
+
+.workspace-form label {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+}
+
+
+
+.workspace-form input:not([type="hidden"]) {
+
+    background: var(--bg-tertiary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    color: var(--text-primary);
+
+    padding: 10px 12px;
+
+    font-size: 14px;
+
+}
+
+
+
+.workspace-expires-picker {
+
+    position: relative;
+
+}
+
+
+
+.workspace-expires-picker .gruzz-date-trigger {
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 8px;
+
+    background: var(--bg-tertiary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    color: var(--text-primary);
+
+    padding: 10px 12px;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    text-align: left;
+
+}
+
+
+
+.workspace-expires-picker .gruzz-date-dropdown {
+
+    z-index: 1200;
+
+    width: 100%;
+
+    min-width: 260px;
+
+}
+
+
+
+.workspace-form button[type="submit"] {
+
+    align-self: flex-start;
+
+    padding: 10px 16px;
+
+    border: none;
+
+    border-radius: var(--radius-md);
+
+    background: var(--accent);
+
+    color: #fff;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+
+.invite-key-row {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+
+}
+
+
+
+.invite-key-code {
+
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    font-size: 12px;
+
+    letter-spacing: 0.04em;
+
+    background: var(--bg-tertiary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    padding: 6px 10px;
+
+    word-break: break-all;
+
+}
+
+
+
+/* Панель управления пространством */
+
+#workspace-admin-overlay {
+
+    position: fixed;
+
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.45);
+
+    z-index: 1400;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: opacity 0.2s ease;
+
+}
+
+
+
+#workspace-admin-overlay.open {
+
+    opacity: 1;
+
+    pointer-events: auto;
+
+}
+
+
+
+#workspace-admin-panel {
+
+    position: fixed;
+
+    top: 0;
+
+    right: 0;
+
+    width: min(440px, 100vw);
+
+    height: 100vh;
+
+    background: var(--bg-secondary);
+
+    border-left: 1px solid var(--border);
+
+    z-index: 1401;
+
+    display: flex;
+
+    flex-direction: column;
+
+    transform: translateX(100%);
+
+    transition: transform 0.25s ease;
+
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.2);
+
+}
+
+
+
+#workspace-admin-panel.open {
+
+    transform: translateX(0);
+
+}
+
+
+
+.ws-panel-header {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 20px;
+
+    border-bottom: 1px solid var(--border);
+
+}
+
+
+
+.ws-panel-header h3 {
+
+    margin: 0;
+
+    font-size: 18px;
+
+    font-weight: 600;
+
+}
+
+
+
+.ws-panel-close {
+
+    background: transparent;
+
+    border: none;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    padding: 4px;
+
+    border-radius: var(--radius-sm);
+
+}
+
+
+
+.ws-panel-close:hover {
+
+    color: var(--text-primary);
+
+    background: var(--bg-tertiary);
+
+}
+
+
+
+#workspace-admin-body {
+
+    flex: 1;
+
+    overflow-y: auto;
+
+    padding: 20px;
+
+}
+
+
+
+.ws-panel-section {
+
+    margin-bottom: 24px;
+
+}
+
+
+
+.ws-panel-section h4 {
+
+    margin: 0 0 12px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.04em;
+
+    color: var(--text-secondary);
+
+}
+
+
+
+.ws-extend-form {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+}
+
+
+
+.ws-extend-form label {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+}
+
+
+
+.ws-extend-form input[type="date"],
+input[type="date"].ws-hidden-native-date {
+    display: none !important;
+}
+
+.ws-extend-label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.ws-subscription-picker {
+    position: relative;
+    z-index: 10;
+}
+
+.ws-subscription-picker .gruzz-date-trigger {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 10px 12px;
+    font-size: 14px;
+    gap: 10px;
+}
+
+.ws-subscription-picker .gruzz-date-dropdown {
+    z-index: 1500;
+    border-radius: 8px;
+}
+
+.ws-extend-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.ws-btn-secondary {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.ws-btn-secondary:hover {
+    border-color: var(--accent);
+}
+
+
+
+.ws-hint {
+
+    margin: 0;
+
+    font-size: 12px;
+
+    color: var(--text-muted);
+
+}
+
+
+
+.ws-btn-primary {
+
+    align-self: flex-start;
+
+    padding: 10px 16px;
+
+    border: none;
+
+    border-radius: var(--radius-md);
+
+    background: var(--accent);
+
+    color: #fff;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+
+.ws-panel-stats {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+    margin-bottom: 20px;
+
+    padding: 12px;
+
+    background: var(--bg-tertiary);
+
+    border-radius: var(--radius-md);
+
+    border: 1px solid var(--border);
+
+}
+
+
+
+.ws-admins-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 14px;
+
+}
+
+
+
+.ws-admin-card {
+
+    background: var(--bg-tertiary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    padding: 12px;
+
+}
+
+
+
+.ws-admin-head {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 10px;
+
+}
+
+
+
+.ws-admin-avatar {
+
+    width: 40px;
+
+    height: 40px;
+
+    border-radius: 50%;
+
+    overflow: hidden;
+
+    background: var(--accent);
+
+    color: #fff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-weight: 600;
+
+    flex-shrink: 0;
+
+}
+
+
+
+.ws-admin-avatar img {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+}
+
+
+
+.ws-admin-name {
+
+    font-weight: 600;
+
+    font-size: 14px;
+
+}
+
+
+
+.ws-admin-tag {
+
+    font-size: 12px;
+
+    color: var(--text-secondary);
+
+}
+
+
+
+.ws-session-row {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    padding: 8px 0;
+
+    border-top: 1px solid var(--border-light, var(--border));
+
+}
+
+
+
+.ws-session-row:first-child {
+
+    border-top: none;
+
+    padding-top: 0;
+
+}
+
+
+
+.ws-session-platform-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.12);
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin-bottom: 4px;
+}
+
+.ws-admin-head-text {
+    min-width: 0;
+}
+
+
+
+.ws-session-device {
+    font-size: 12px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.ws-session-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+
+
+.ws-btn-terminate {
+
+    flex-shrink: 0;
+
+    padding: 6px 10px;
+
+    font-size: 11px;
+
+    border: 1px solid rgba(220, 53, 69, 0.5);
+
+    border-radius: var(--radius-sm);
+
+    background: transparent;
+
+    color: #dc3545;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+}
+
+
+
+.ws-btn-terminate:hover {
+
+    background: rgba(220, 53, 69, 0.12);
+
+}
+
+
+
+.ws-session-legacy-hint {
+
+    font-size: 10px;
+
+    color: var(--text-muted);
+
+    max-width: 100px;
+
+    text-align: right;
+
+}
+
+
+
+.ws-admin-no-sessions,
+
+.ws-empty-admins,
+
+.ws-panel-loading,
+
+.ws-panel-error {
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+}
+
+
+
+.ws-panel-error {
+
+    color: #dc3545;
+
+}
+
+
+
+.employee-access-panel {
+
+    max-width: 520px;
+
+    margin: 24px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-lg);
+
+    padding: 20px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 16px;
+
+}
+
+
+
+.employee-access-panel h4 {
+
+    margin: 0;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+}
+
+
+
+.employee-access-panel p {
+
+    margin: 0;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+    line-height: 1.5;
+
+}
+
+
+
+.employee-access-actions {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+}
+
+
+
+.btn-generate-share {
+
+    padding: 10px 16px;
+
+    border: none;
+
+    border-radius: var(--radius-md);
+
+    background: var(--accent);
+
+    color: #fff;
+
+    font-weight: 600;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+}
+
+
+
+.share-link-block {
+
+    display: none;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+    padding-top: 4px;
+
+    border-top: 1px solid var(--border);
+
+}
+
+
+
+.share-link-block.is-visible {
+
+    display: flex;
+
+}
+
+
+
+.share-link-row {
+
+    display: flex;
+
+    gap: 8px;
+
+    align-items: stretch;
+
+}
+
+
+
+.share-link-input {
+
+    flex: 1;
+
+    min-width: 0;
+
+    background: var(--bg-tertiary);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    color: var(--text-primary);
+
+    padding: 10px 12px;
+
+    font-size: 12px;
+
+}
+
+
+
+.btn-copy-link {
+
+    flex-shrink: 0;
+
+    padding: 10px 14px;
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-md);
+
+    background: var(--bg-tertiary);
+
+    color: var(--text-primary);
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+
+#employee-share-qrcode {
+
+    background: #fff;
+
+    padding: 8px;
+
+    border-radius: var(--radius-md);
+
+    border: 1px solid var(--border);
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block admin_content %}
+
+<div class="admin-panel-header">
+
+    <div>
+
+        <h3>Рабочие пространства</h3>
+
+        {% if is_external_director %}
+
+        <p>Ваше пространство: подписка и сеансы админов (только просмотр)</p>
+
+        {% elif is_flagship_director %}
+
+        <p>Все пространства платформы: продление подписок и контроль сеансов</p>
+
+        {% else %}
+
+        <p>Изолированные компании, подписки и активные сеансы администраторов</p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+
+<div class="admin-panel-body">
+
+    {% if show_employee_invite_panel %}
+
+    <div class="employee-access-panel">
+
+        <div>
+
+            <h4>Доступ сотрудников компании</h4>
+
+            <p>
+
+                Компания: <strong>{{ director_workspace.name }}</strong>.
+
+                Сгенерируйте ссылку и QR-код — диспетчеры и исполнители автоматически попадут в ваше изолированное пространство при регистрации.
+
+            </p>
+
+        </div>
+
+
+
+        <form class="employee-access-actions" method="post" action="{{ url_for('admin.generate_share_link') }}" accept-charset="UTF-8">
+
+            <button type="submit" class="btn-generate-share">Сгенерировать инвайт-ссылку и QR</button>
+
+        </form>
+
+
+
+        <div class="share-link-block{% if share_join_url %} is-visible{% endif %}" id="share-link-block">
+
+            <div class="share-link-row">
+
+                <input type="text" class="share-link-input" id="share-link-input" readonly value="{{ share_join_url or '' }}">
+
+                <button type="button" class="btn-copy-link" id="btn-copy-share-link">Копировать</button>
+
+            </div>
+
+            <div class="share-qr-wrap">
+
+                <div id="employee-share-qrcode"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    <div class="workspaces-grid">
+
+        {% if can_create_workspace %}
+
+        <div class="create-workspace-card workspace-card">
+
+            <h4>Создать пространство</h4>
+
+            <form class="workspace-form" method="post" action="{{ url_for('admin.create_workspace') }}" accept-charset="UTF-8">
+
+                <label>
+
+                    Название
+
+                    <input type="text" name="name" required placeholder="Например: ООО ГрузЭксперт">
+
+                </label>
+
+                <label>
+
+                    Лимит админ-состава
+
+                    <input type="number" name="admin_limit" min="1" value="5" required>
+
+                </label>
+
+                <label>
+
+                    Срок действия подписки
+
+                    <div class="gruzz-date-picker workspace-expires-picker" data-gruzz-date-picker data-placeholder="Необязательно">
+
+                        <input type="hidden" name="expires_at" value="">
+
+                        <button type="button" class="gruzz-date-trigger">
+
+                            <span class="gruzz-date-display is-placeholder">Необязательно</span>
+
+                            <i data-lucide="calendar"></i>
+
+                        </button>
+
+                        <div class="custom-datepicker gruzz-date-dropdown" style="display: none;"></div>
+
+                    </div>
+
+                </label>
+
+                <button type="submit">Создать</button>
+
+            </form>
+
+        </div>
+
+        {% endif %}
+
+        {% for ws in workspaces %}
+
+        {% set stats = workspace_stats.get(ws.id, {}) %}
+
+        <div class="workspace-card" data-workspace-id="{{ ws.id }}" role="button" tabindex="0" title="Открыть управление">
+
+            <h4 class="workspace-card-title">{{ display_workspace_name(ws.name) }}</h4>
+
+            <div class="workspace-meta">
+
+                <div>Лимит админов: {{ ws.admin_limit or 5 }}</div>
+
+                <div>
+
+                    Подписка до:
+
+                    <span data-stat-expires>{% if ws.expires_at %}{{ ws.expires_at.strftime('%d.%m.%Y') }}{% else %}без ограничения{% endif %}</span>
+
+                </div>
+
+                {% if ws.invite_key %}
+
+                <div class="invite-key-row">
+
+                    <span>Ключ директора:</span>
+
+                    <code class="invite-key-code">{{ ws.invite_key }}</code>
+
+                </div>
+
+                {% else %}
+
+                <div>Ключ директора: использован</div>
+
+                {% endif %}
+
+            </div>
+
+            <div class="workspace-stats">
+
+                <span class="workspace-stat">Исполнителей: <span data-stat-workers>{{ stats.workers or 0 }}</span></span>
+
+                <span class="workspace-stat">Клиентов: <span data-stat-clients>{{ stats.clients or 0 }}</span></span>
+
+                <span class="workspace-stat">Админов: {{ stats.admins or 0 }} / {{ ws.admin_limit or 5 }}</span>
+
+            </div>
+
+            <p class="workspace-card-hint">Нажмите для управления подпиской и сеансами</p>
+
+        </div>
+
+        {% else %}
+
+        <div class="workspace-card" style="cursor:default;">
+
+            <p style="margin:0;color:var(--text-secondary);">Пока нет рабочих пространств</p>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+
+    <div id="workspace-admin-overlay" aria-hidden="true"></div>
+
+    <aside id="workspace-admin-panel" aria-hidden="true">
+
+        <div class="ws-panel-header">
+
+            <h3 id="workspace-admin-title">Пространство</h3>
+
+            <button type="button" class="ws-panel-close" id="workspace-admin-close" aria-label="Закрыть">
+
+                <i data-lucide="x"></i>
+
+            </button>
+
+        </div>
+
+        <div id="workspace-admin-body">
+
+            <div class="ws-panel-loading">Выберите пространство в списке</div>
+
+        </div>
+
+    </aside>
+
+</div>
+
+<script>
+window.WORKSPACE_ADMIN_DEFAULT_PERMS = {{ workspace_admin_perms|tojson }};
+</script>
+
+<script src="{{ url_for('static', filename='js/admin-workspaces.js') }}?v=1.2"></script>
+
+{% if can_create_workspace %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var pickerRoot = document.querySelector('.workspace-expires-picker[data-gruzz-date-picker]');
+    if (window.GruzzDatePicker && pickerRoot) {
+        var nowYear = new Date().getFullYear();
+        GruzzDatePicker.init(pickerRoot, {
+            changeMonth: true,
+            changeYear: true,
+            yearRange: [nowYear, nowYear + 20],
+        });
+    }
+});
+</script>
+{% endif %}
+
+{% if show_employee_invite_panel and share_join_url %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+
+(function () {
+
+    var joinUrl = {{ share_join_url | tojson }};
+
+    var qrContainer = document.getElementById('employee-share-qrcode');
+
+    if (joinUrl && qrContainer && typeof QRCode !== 'undefined') {
+
+        qrContainer.innerHTML = '';
+
+        new QRCode(qrContainer, {
+
+            text: joinUrl,
+
+            width: 128,
+
+            height: 128,
+
+            colorDark: '#111111',
+
+            colorLight: '#ffffff',
+
+            correctLevel: QRCode.CorrectLevel.M
+
+        });
+
+    }
+
+    var copyBtn = document.getElementById('btn-copy-share-link');
+
+    var linkInput = document.getElementById('share-link-input');
+
+    if (copyBtn && linkInput) {
+
+        copyBtn.addEventListener('click', function () {
+
+            linkInput.select();
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+
+                navigator.clipboard.writeText(linkInput.value);
+
+            } else {
+
+                document.execCommand('copy');
+
+            }
+
+            copyBtn.textContent = 'Скопировано';
+
+            setTimeout(function () { copyBtn.textContent = 'Копировать'; }, 2000);
+
+        });
+
+    }
+
+})();
+
+</script>
+
+{% endif %}
+
+{% endblock %}
+

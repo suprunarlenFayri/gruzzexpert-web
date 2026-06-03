@@ -1,0 +1,28 @@
+{% macro admin_subnav(active_tab='users') %}
+<nav class="admin-tabs" aria-label="Разделы администрирования">
+    <a href="{{ url_for('admin.manage_users') }}"
+       class="admin-tab{% if active_tab == 'users' %} active{% endif %}">
+        <i data-lucide="users"></i>
+        Пользователи мессенджера
+    </a>
+    <a href="{{ url_for('admin.manage_workers') }}"
+       class="admin-tab{% if active_tab == 'workers' %} active{% endif %}">
+        <i data-lucide="hard-hat"></i>
+        Исполнители
+    </a>
+    {% if current_user.role in ['creator', 'director'] %}
+    <a href="{{ url_for('admin.manage_workspaces') }}"
+       class="admin-tab{% if active_tab == 'workspaces' %} active{% endif %}">
+        <i data-lucide="building-2"></i>
+        Рабочие пространства
+    </a>
+    {% endif %}
+    {% if current_user.role in ['creator', 'director', 'senior_dispatcher', 'dispatcher'] %}
+    <a href="{{ url_for('admin.manage_clients') }}"
+       class="admin-tab{% if active_tab == 'clients' %} active{% endif %}">
+        <i data-lucide="contact"></i>
+        Клиенты
+    </a>
+    {% endif %}
+</nav>
+{% endmacro %}

@@ -1,0 +1,3421 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import status_badge, task_list_assigned_avatars, task_slots_badge %}
+
+{% block title %}Заявки | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+/* ===== КОМПАКТНЫЙ СПИСОК ЗАЯВОК ===== */
+
+/* Контейнер списка */
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tasks-archive-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+    font-family: inherit;
+}
+
+.tasks-archive-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.tasks-archive-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.08);
+}
+
+.tasks-archive-btn.is-active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.12);
+}
+
+/* ГРИД СПИСКА - вертикальный список (тонкий кастомный скролл — style.css .b2b-scroll) */
+.tasks-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* КОМПАКТНАЯ КАРТОЧКА */
+.task-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    cursor: pointer;
+}
+
+.task-card:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent);
+}
+
+.task-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin-bottom: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.task-number {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+}
+
+.task-compact-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.task-compact-meta .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.task-compact-meta .meta-item i {
+    width: 12px;
+    height: 12px;
+}
+
+.task-address-snippet {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.task-assigned-avatars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.assigned-worker-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.assigned-worker-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.assigned-worker-initials {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.assigned-more {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 0 4px;
+}
+
+.task-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.task-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.task-status {
+    flex-shrink: 0;
+}
+
+.task-status .status-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+}
+
+.task-pin-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+}
+
+.task-pin-btn:hover {
+    color: var(--accent);
+    background: var(--bg-tertiary);
+    transform: scale(1.1);
+}
+
+.task-pin-btn.active {
+    color: var(--warning);
+}
+
+/* FAB кнопка */
+.fab-create {
+    position: fixed;
+    bottom: var(--space-xl);
+    right: var(--space-xl);
+    width: 52px;
+    height: 52px;
+    border-radius: 26px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-decoration: none;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    transition: all var(--transition-normal);
+}
+
+.fab-create:hover {
+    transform: scale(1.1);
+    background: var(--accent-hover);
+}
+
+/* Пустое состояние */
+.empty-state {
+    text-align: center;
+    padding: var(--space-3xl) var(--space-xl);
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-lg);
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin-bottom: var(--space-sm);
+}
+
+.empty-state .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    margin-top: var(--space-lg);
+}
+
+/* Анимация появления карточек */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.task-card {
+    animation: slideIn var(--transition-fast) backwards;
+}
+
+.task-card:nth-child(1) { animation-delay: 0.02s; }
+.task-card:nth-child(2) { animation-delay: 0.04s; }
+.task-card:nth-child(3) { animation-delay: 0.06s; }
+.task-card:nth-child(4) { animation-delay: 0.08s; }
+.task-card:nth-child(5) { animation-delay: 0.10s; }
+.task-card:nth-child(6) { animation-delay: 0.12s; }
+.task-card:nth-child(7) { animation-delay: 0.14s; }
+.task-card:nth-child(8) { animation-delay: 0.16s; }
+.task-card:nth-child(9) { animation-delay: 0.18s; }
+.task-card:nth-child(10) { animation-delay: 0.20s; }
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .tasks-grid {
+        padding: var(--space-xs);
+        gap: 2px;
+    }
+    
+    .task-card {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    
+    .task-title {
+        font-size: 13px;
+    }
+    
+    .task-meta {
+        font-size: 10px;
+        gap: 8px;
+    }
+    
+    .task-price {
+        font-size: 13px;
+    }
+    
+    .task-right {
+        gap: 10px;
+    }
+    
+    .fab-create {
+        bottom: var(--space-lg);
+        right: var(--space-lg);
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* Стили для мини-карточек в сайдбаре */
+.sidebar-tasks-wrapper {
+    padding: var(--space-md);
+}
+
+.sidebar-group {
+    margin-bottom: var(--space-xl);
+}
+
+.sidebar-group-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-md) 0 var(--space-sm) 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.task-mini-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    margin-bottom: var(--space-xs);
+}
+
+.task-mini-card:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+}
+
+.task-mini-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.task-mini-title {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-mini-price {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--success);
+}
+
+.task-mini-client {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.sidebar-empty {
+    padding: var(--space-md);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+}
+
+/* Фильтры */
+.filters-container {
+    padding: var(--space-sm) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.filters-toggle-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0 0 var(--space-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.filter-panel {
+    margin-top: 0;
+}
+
+.filter-toolbar-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.filter-control {
+    flex: 1 1 160px;
+    min-width: 0;
+    height: 37.99px !important;
+    min-height: 37.99px !important;
+    box-sizing: border-box !important;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 35.99px;
+}
+
+.filter-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(43, 82, 120, 0.1);
+}
+
+.filter-search {
+    flex: 2 1 220px;
+}
+
+.filter-city-wrap {
+    flex: 1 1 180px;
+    min-width: 140px;
+}
+
+.filter-date-field {
+    flex: 0 1 190px;
+    min-width: 160px;
+    position: relative;
+}
+
+.filter-date-trigger {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    height: 37.99px !important;
+    min-height: 37.99px !important;
+    box-sizing: border-box !important;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+}
+
+.filter-date-trigger i {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.filter-date-field .gruzz-date-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 120;
+    min-width: 280px;
+}
+
+.filter-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.filter-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.filter-btn-apply {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.filter-btn-apply:hover {
+    filter: brightness(1.05);
+}
+
+.filter-btn-reset:hover {
+    background: var(--bg-secondary);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.filter-select, .filter-input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.filter-actions {
+    display: none;
+}
+
+/* Спиннер загрузки */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.task-detail-loading {
+    text-align: center;
+    padding: var(--space-3xl);
+    color: var(--text-secondary);
+}
+
+/* ===== СТИЛИ ДЛЯ ВЫДВИЖНОЙ ПАНЕЛИ ===== */
+.detail-card {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+
+.detail-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-card-icon {
+    font-size: 18px;
+}
+
+.detail-card-icon-lucide {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.12);
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.detail-card-icon-lucide i {
+    width: 16px;
+    height: 16px;
+}
+
+.detail-time-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+    font-size: 14px;
+    color: var(--text-primary);
+    border-top: 1px solid var(--border-light);
+    margin-top: var(--space-sm);
+}
+
+.detail-time-row i {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.detail-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.detail-status-badge.status-recruiting {
+    background: rgba(168, 85, 247, 0.15);
+    color: var(--status-recruiting);
+}
+
+.detail-status-badge.status-in-progress {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--status-in-progress);
+}
+
+.detail-status-badge.status-done {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--status-done);
+}
+
+.detail-workers-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 14px;
+    color: var(--text-primary);
+    padding-top: var(--space-sm);
+}
+
+.detail-workers-meta i {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+}
+
+/* Панель исполнителя */
+.worker-task-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.35;
+    margin: 0 0 var(--space-md) 0;
+}
+
+.worker-task-description {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0 0 var(--space-lg) 0;
+}
+
+.worker-meta-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.worker-meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.worker-meta-row i {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.worker-meta-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.worker-actions-footer {
+    padding: 0;
+    width: 100%;
+}
+
+.detail-actions-sticky.worker-actions-footer {
+    padding: var(--space-lg);
+    margin-top: var(--space-md);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.worker-action-btn,
+.btn-route,
+.btn-arrive,
+.btn-finish,
+.gruzz-video-btn,
+.accept-task-wrapper {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: 100%;
+}
+
+.accept-task-wrapper {
+    margin-top: 0;
+}
+
+.worker-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border: none;
+    font-weight: 600;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.worker-action-btn svg,
+.worker-action-btn i[data-lucide] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.worker-action-accent {
+    background: var(--accent);
+    color: #fff;
+}
+
+a.worker-action-btn {
+    text-decoration: none;
+}
+
+.worker-action-accent:hover:not(:disabled):not(.is-disabled) {
+    background: var(--accent-hover);
+}
+
+.worker-action-btn.is-disabled,
+.worker-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.worker-action-btn:active:not(:disabled):not(.is-disabled),
+.btn-success:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.97) translateY(1px);
+    transition: transform 0.1s ease;
+}
+
+.worker-done-notice {
+    text-align: center;
+    padding: var(--space-md);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.detail-worker-duration {
+    margin-top: var(--space-xs);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.detail-worker-duration i {
+    width: 14px;
+    height: 14px;
+}
+
+.tracking-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+.tracking-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-family: inherit;
+}
+
+.tracking-btn i {
+    width: 18px;
+    height: 18px;
+}
+
+.tracking-btn:hover:not(:disabled):not(.is-disabled) {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb, 43, 82, 120), 0.08);
+}
+
+.tracking-btn.is-disabled,
+.tracking-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tracking-btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.tracking-btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.tracking-btn-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+}
+
+.tracking-done-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.detail-worker-tracking {
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-worker-tracking:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.detail-worker-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.detail-worker-tracking-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.detail-card-header h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.detail-card-body {
+    padding: var(--space-lg);
+}
+
+.detail-field-compact {
+    margin-bottom: var(--space-md);
+}
+
+.detail-field-compact:last-child {
+    margin-bottom: 0;
+}
+
+.detail-value-large {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+}
+
+.detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.detail-value-muted {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.detail-label-small {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.detail-price-large {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--success);
+    text-align: center;
+    padding: var(--space-sm) 0;
+}
+
+.detail-status-row,
+.detail-workers-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+}
+
+.detail-status-row {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-status-icon,
+.detail-workers-icon {
+    font-size: 20px;
+}
+
+.detail-status-text {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.detail-workers-text {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.detail-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-info-row:last-child {
+    border-bottom: none;
+}
+
+.detail-info-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.detail-info-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.detail-actions-sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--bg-secondary);
+    padding: var(--space-lg);
+    margin-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.task-detail-footer {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+.task-detail-footer .btn-forward-chat-footer {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.task-detail-footer .btn-forward-chat {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.task-detail-footer .btn-forward-chat:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
+}
+
+.task-detail-footer.detail-actions-sticky {
+    margin-top: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+
+.task-detail-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-md) var(--space-xl);
+    transform: translateZ(0);
+    min-height: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    box-sizing: border-box;
+}
+
+.task-detail-content::-webkit-scrollbar {
+    width: 0 !important;
+    display: none !important;
+}
+
+.task-detail-content .detail-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.task-detail-content .detail-card,
+.task-detail-content .detail-actions-sticky {
+    width: 100%;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.detail-action-btn {
+    width: 100%;
+    padding: var(--space-md);
+    text-align: center;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.detail-action-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: white;
+}
+
+.detail-action-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.05);
+}
+
+.btn-success-action {
+    width: 100%;
+    padding: 10px;
+    background: var(--success, #27ae60);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-success-action:hover {
+    filter: brightness(1.05);
+}
+
+.btn-reject-action {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: var(--danger, #e74c3c);
+    border: 1px solid var(--danger, #e74c3c);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-reject-action:hover {
+    background: rgba(231, 76, 60, 0.08);
+}
+
+.worker-submit-btn {
+    width: 100%;
+}
+
+/* ===== ВИДЕО-КНОПКА - УВЕЛИЧЕННАЯ И УСКОРЕННАЯ ===== */
+:root {
+    --gruzz-yellow: #FFD700;
+    --gruzz-green: #27ae60;
+}
+
+.accept-task-wrapper {
+    margin-top: 0;
+}
+
+/* Клики доходят до кнопки/контейнера, а не до вложенных span/video */
+.task-detail-actions-worker,
+.worker-actions-footer {
+    position: relative;
+}
+
+.task-detail-actions-worker *,
+.gruzz-video-btn .btn-content-wrapper,
+.gruzz-video-btn .btn-content-wrapper *,
+.worker-action-btn * {
+    pointer-events: none;
+}
+
+.gruzz-video-btn,
+.worker-action-btn {
+    pointer-events: auto;
+}
+
+.gruzz-video-btn {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    height: 100px;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Премиальная кнопка «Взять в работу» — только в панели исполнителя */
+.task-detail-actions-worker .gruzz-video-btn {
+    background: var(--bg-tertiary);
+    border: 2px solid color-mix(in srgb, var(--gruzz-yellow) 22%, var(--border));
+    border-radius: var(--radius-lg);
+    transition:
+        background-color 0.4s ease,
+        border-color 0.4s ease,
+        box-shadow 0.4s ease,
+        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-content-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* --- ПОКОЙ --- */
+.state-idle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 1;
+    transition: all 0.3s ease;
+    z-index: 5;
+    width: 100%;
+}
+
+.icon-truck {
+    width: 28px;
+    height: 28px;
+    transition: color 0.4s ease, filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.main-label {
+    font-weight: 700;
+    font-size: 18px;
+    transition: color 0.4s ease, text-shadow 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* --- Покой: жёлтое свечение текста и иконки, постер на паузе под слоем --- */
+.task-detail-actions-worker .gruzz-video-btn:not(.is-animating):not(.is-success):not(:hover):not(.is-previewing) .icon-truck {
+    color: color-mix(in srgb, var(--gruzz-yellow) 82%, var(--text-secondary));
+    filter: drop-shadow(0 0 4px rgba(255, 204, 0, 0.2));
+}
+
+.task-detail-actions-worker .gruzz-video-btn:not(.is-animating):not(.is-success):not(:hover):not(.is-previewing) .main-label {
+    color: color-mix(in srgb, var(--gruzz-yellow) 78%, var(--text-primary));
+    text-shadow: 0 0 8px rgba(255, 204, 0, 0.2);
+}
+
+/* --- ВИДЕО КОНТЕЙНЕР --- */
+.state-animating {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease 0.1s;
+    z-index: 1;
+}
+
+.btn-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+    display: block;
+}
+
+/* --- УСПЕХ --- */
+.state-success {
+    position: absolute;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 0;
+    z-index: 10;
+    color: white;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--gruzz-green), #1e8a3e);
+}
+
+.icon-check {
+    width: 24px;
+    height: 24px;
+}
+
+.success-label {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.task-detail-actions-worker .gruzz-video-btn .btn-video {
+    pointer-events: none;
+}
+
+.task-detail-actions-worker .gruzz-video-btn .state-animating {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.task-detail-actions-worker .gruzz-video-btn .state-idle {
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Hover: чёрный фон, неоновое свечение, постер (1-й кадр) без autoplay */
+.task-detail-actions-worker .gruzz-video-btn:hover:not(.is-animating):not(.is-success),
+.task-detail-actions-worker .gruzz-video-btn.is-previewing:not(.is-animating):not(.is-success) {
+    background-color: #000000 !important;
+    border-color: var(--gruzz-yellow) !important;
+    box-shadow:
+        0 0 15px rgba(255, 204, 0, 0.5),
+        0 0 35px rgba(255, 204, 0, 0.22),
+        inset 0 0 24px rgba(255, 204, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.task-detail-actions-worker .gruzz-video-btn:hover:not(.is-animating):not(.is-success) .state-idle,
+.task-detail-actions-worker .gruzz-video-btn.is-previewing:not(.is-animating):not(.is-success) .state-idle {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+.task-detail-actions-worker .gruzz-video-btn:hover:not(.is-animating):not(.is-success) .state-animating,
+.task-detail-actions-worker .gruzz-video-btn.is-previewing:not(.is-animating):not(.is-success) .state-animating {
+    opacity: 1;
+}
+
+/* Клик / лоадер: чёрный контейнер + усиленное свечение, видео 2x в JS */
+.task-detail-actions-worker .gruzz-video-btn.is-animating {
+    background-color: #000000 !important;
+    border-color: var(--gruzz-yellow) !important;
+    box-shadow:
+        0 0 20px rgba(255, 204, 0, 0.65),
+        0 0 45px rgba(255, 204, 0, 0.35);
+    pointer-events: none;
+}
+
+.task-detail-actions-worker .gruzz-video-btn.is-animating .state-idle {
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+.task-detail-actions-worker .gruzz-video-btn.is-animating .state-animating {
+    opacity: 1;
+}
+
+.worker-reject-btn {
+    background: transparent !important;
+    color: var(--danger, #e74c3c) !important;
+    border: 1px solid color-mix(in srgb, var(--danger, #e74c3c) 55%, transparent) !important;
+}
+
+.worker-reject-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger, #e74c3c) 12%, transparent) !important;
+}
+
+.detail-remove-worker {
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+
+/* --- СОСТОЯНИЕ УСПЕХА (после клика) --- */
+.gruzz-video-btn.is-success {
+    border-color: var(--gruzz-green);
+    pointer-events: none;
+}
+
+.gruzz-video-btn.is-success .state-idle,
+.gruzz-video-btn.is-success .state-animating {
+    opacity: 0 !important;
+    display: none;
+}
+
+.gruzz-video-btn.is-success .state-success {
+    display: flex;
+    opacity: 1;
+    animation: popInSuccess 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popInSuccess {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Мобильная адаптация видео-кнопки */
+@media (max-width: 768px) {
+    .gruzz-video-btn {
+        height: 100px;
+    }
+    
+    .main-label {
+        font-size: 14px;
+    }
+    
+    .success-label {
+        font-size: 14px;
+    }
+    
+    .icon-truck {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ДЛЯ ЗАЯВОК ===== */
+
+@media (max-width: 768px) {
+    .tasks-grid {
+        padding: var(--space-xs);
+        gap: 2px;
+    }
+    
+    .task-card {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+    
+    .task-title {
+        font-size: 13px;
+    }
+    
+    .task-meta {
+        font-size: 10px;
+        gap: 6px;
+    }
+    
+    .task-price {
+        font-size: 12px;
+    }
+    
+    .task-right {
+        gap: 6px;
+    }
+    
+    .task-pin-btn {
+        padding: 2px;
+    }
+    
+    /* Выдвижная панель */
+    .task-detail-panel {
+        width: 100%;
+        left: 0;
+        right: auto;
+        transform: translateX(100%);
+    }
+    
+    .task-detail-panel.open {
+        transform: translateX(0);
+    }
+    
+    .detail-card-body {
+        padding: var(--space-md);
+    }
+    
+    .detail-price-large {
+        font-size: 22px;
+    }
+    
+    .detail-actions-sticky {
+        padding: var(--space-md);
+    }
+    
+    /* Фильтры */
+    .filters-container {
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    .filter-select, .filter-input {
+        font-size: 12px;
+        padding: var(--space-xs) var(--space-sm);
+    }
+}
+
+/* Контекстное меню */
+#task-context-menu {
+    position: fixed;
+    z-index: 10000;
+    display: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 160px;
+    overflow: hidden;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.context-menu-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.context-menu-item i {
+    width: 16px;
+    height: 16px;
+}
+
+.task-executors-wrapper {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+}
+
+.executors-details[open] .arrow-icon {
+    transform: rotate(180deg);
+}
+
+.executors-summary {
+    list-style: none; /* Убираем стандартную стрелку */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.executors-summary::-webkit-details-marker {
+    display: none; /* Для Safari */
+}
+
+.summary-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.arrow-icon {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+.executors-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 4px;
+}
+
+.executor-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+}
+
+.executor-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.mini-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.mini-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.executor-name {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.select-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: var(--space-xs);
+    padding-left: var(--space-sm);
+}
+
+.fav-star-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    transition: transform 0.2s ease;
+}
+
+.fav-star-btn:hover {
+    transform: scale(1.2);
+}
+
+/* Исправление светлой полоски Tom Select */
+.ts-control {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: var(--space-sm) var(--space-md) !important;
+}
+
+.ts-control input {
+    color: var(--text-primary) !important;
+}
+
+.ts-wrapper.single .ts-control {
+    background-image: none !important;
+}
+
+.ts-dropdown {
+    background-color: var(--bg-tertiary) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+}
+
+.ts-dropdown .active {
+    background-color: var(--accent) !important;
+    color: white !important;
+}
+
+.ts-dropdown .option {
+    color: var(--text-primary) !important;
+}
+
+.ts-dropdown .option:hover {
+    background-color: var(--bg-secondary) !important;
+}
+
+.ts-control input {
+    color: var(--text-primary) !important;
+}
+/* Акцентная кнопка назад */
+.back-btn {
+    background: var(--accent) !important;
+    color: white !important;
+    border: none !important;
+}
+.back-btn i { color: white !important; }
+.back-btn:hover {
+    background: var(--accent-hover) !important;
+}
+
+</style>
+{% endblock %}
+
+{% block sidebar_tasks %}
+{% if current_user.role in ['worker', 'brigadir'] %}
+<div class="sidebar-tasks-wrapper">
+    <div class="sidebar-group">
+        <a href="{{ url_for('tasks.my_tasks') }}" class="sidebar-group-header">
+            <div class="header-title">
+                <i data-lucide="briefcase"></i>
+                <span>Мои заявки</span>
+            </div>
+            <i data-lucide="chevron-right" style="width: 14px; height: 14px; opacity: 0.5;"></i>
+        </a>
+        <div class="sidebar-group-items">
+            {% for task in my_in_progress %}
+            <div class="task-mini-card" onclick="openTaskDetail({{ task.id }})">
+                <div class="task-mini-card-header">
+                    <div class="task-mini-title">{{ task.title }}</div>
+                    <div class="task-mini-price">{{ task.price }} ₽</div>
+                </div>
+                <div class="task-mini-client">
+                    <i data-lucide="building"></i>
+                    <span>{{ task.client.name if task.client else 'Без клиента' }}</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="sidebar-empty">Нет заявок в работе</div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {% if pinned_tasks %}
+    <div class="sidebar-group">
+        <div class="sidebar-group-header">
+            <i data-lucide="pin"></i>
+            <span>Закреплённые</span>
+        </div>
+        <div class="sidebar-group-items">
+            {% for task in pinned_tasks %}
+            <div class="task-mini-card" onclick="openTaskDetail({{ task.id }})">
+                <div class="task-mini-card-header">
+                    <div class="task-mini-title">{{ task.title }}</div>
+                    <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block main_content %}
+<div class="tasks-container">
+    <!-- Шапка -->
+    <div class="chat-header">
+        <button id="mobile-burger-btn" class="burger-header-btn">
+            <i data-lucide="menu"></i>
+        </button>
+        <div class="chat-header-info">
+            <h3 id="tasks-header-title">Заявки</h3>
+            <p id="tasks-header-subtitle">Выберите заявку из списка</p>
+        </div>
+        {% if can_view_archive %}
+        <button type="button" class="tasks-archive-btn" id="tasks-archive-toggle" title="Архив завершенных">
+            <i data-lucide="archive"></i>
+            <span class="tasks-archive-btn-label">Архив завершенных</span>
+        </button>
+        {% endif %}
+    </div>
+    
+    <!-- Фильтры -->
+    {% set filter_date = request.args.get('execution_date', '') %}
+    {% set filter_date_label = '' %}
+    {% if filter_date and filter_date.split('-')|length == 3 %}
+        {% set dp = filter_date.split('-') %}
+        {% set filter_date_label = dp[2] ~ '.' ~ dp[1] ~ '.' ~ dp[0] %}
+    {% endif %}
+    <div class="filters-container">
+        <button type="button" onclick="toggleFilters()" class="filters-toggle-btn">
+            <span><i data-lucide="sliders-horizontal"></i> Фильтры</span>
+            <span id="filter-arrow">▼</span>
+        </button>
+        <div id="filter-panel" class="filter-panel" style="display: none;">
+            <form method="get" action="{{ url_for('tasks.tasks_list') }}" class="filter-toolbar-form" id="tasks-filter-form">
+                <input type="text"
+                       name="search"
+                       class="filter-control filter-search"
+                       placeholder="Поиск по номеру или названию..."
+                       value="{{ request.args.get('search', '') }}">
+
+                <div class="filter-city-wrap filter-city-combobox" id="filter-city-combobox">
+                    {% set selected_city_id = request.args.get('city_id', '')|int %}
+                    {% set selected_city_name = '' %}
+                    {% if selected_city_id %}
+                        {% for city in cities %}
+                            {% if city.id == selected_city_id %}
+                                {% set selected_city_name = city.name %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <input type="text"
+                           id="filter_city_input"
+                           class="filter-control filter-city-input b2b-input"
+                           placeholder="Все города"
+                           value="{{ selected_city_name }}"
+                           autocomplete="off"
+                           aria-autocomplete="list"
+                           aria-controls="filter_city_dropdown">
+                    <input type="hidden" name="city_id" id="filter_city_id" value="{{ request.args.get('city_id', '') }}">
+                    <div id="filter_city_dropdown" class="filter-city-dropdown b2b-scroll-hide" hidden role="listbox"></div>
+                </div>
+                <script type="application/json" id="tasks-filter-cities-data">[
+                    {%- for city in cities -%}
+                    {"id":{{ city.id }},"name":{{ city.name|tojson }},"isFav":{{ (city.id in (current_user.favorite_cities or []))|tojson }}}{%- if not loop.last -%},{%- endif -%}
+                    {%- endfor -%}
+                ]</script>
+
+                <div class="filter-date-field gruzz-date-picker" data-gruzz-date-picker data-placeholder="Дата выполнения">
+                    <input type="hidden" name="execution_date" value="{{ filter_date }}">
+                    <button type="button" class="gruzz-date-trigger filter-date-trigger">
+                        <i data-lucide="calendar"></i>
+                        <span class="gruzz-date-display{% if not filter_date %} is-placeholder{% endif %}">
+                            {{ filter_date_label if filter_date else 'Дата выполнения' }}
+                        </span>
+                    </button>
+                    <div class="custom-datepicker gruzz-date-dropdown" style="display: none;"></div>
+                </div>
+
+                <div class="filter-toolbar-actions">
+                    <button type="submit" class="filter-btn filter-btn-apply" title="Применить">
+                        <i data-lucide="check"></i>
+                    </button>
+                    <a href="{{ url_for('tasks.tasks_list') }}" class="filter-btn filter-btn-reset" title="Сбросить">
+                        <i data-lucide="rotate-ccw"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Список заявок -->
+    <div class="tasks-grid b2b-scroll" id="tasksGrid">
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="task-card" data-id="{{ task.id }}" data-task-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }})">
+                <div class="task-main-info">
+                    {% if (current_user.role in ['creator', 'director', 'senior_dispatcher', 'dispatcher', 'manager', 'brigadir'] or current_user.id == task.created_by_id) and task.task_number %}
+                    <div class="task-number">№ {{ task.task_number }}</div>
+                    {% endif %}
+                    <div class="task-title">{{ task.title }}</div>
+                    <div class="task-compact-meta">
+                        {{ task_slots_badge(task) }}
+                        {% if task.execution_date %}
+                        <span class="meta-item">
+                            <i data-lucide="calendar"></i>
+                            {{ task.execution_date | format_local_date }}{% if task.execution_time %} {{ task.execution_time.strftime('%H:%M') }}{% endif %}
+                        </span>
+                        {% endif %}
+                        <span class="task-address-snippet" title="{{ task.address or 'Адрес уточняется' }}">
+                            {{ task.address or 'Адрес уточняется' }}
+                        </span>
+                        {{ task_list_assigned_avatars(task) }}
+                    </div>
+                </div>
+                <div class="task-right">
+                    <div class="task-price">{{ "{:,.0f}".format(task.price)|replace(',', ' ') }} ₽</div>
+                    <div class="task-status">{{ status_badge(task.status) }}</div>
+                    <button class="task-pin-btn {% if task.id in pinned_tasks_ids %}active{% endif %}"
+                            onclick="event.stopPropagation(); togglePin({{ task.id }})"
+                            title="Закрепить">
+                        <i data-lucide="pin"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i data-lucide="clipboard-list"></i>
+                
+                {% if current_user.role == 'user' or (current_user.role == 'worker' and not current_user.is_verified) %}
+                    <h3>Станьте исполнителем</h3>
+                    <p>Заполните анкету, чтобы видеть доступные заявки и брать их в работу</p>
+                    <a href="{{ url_for('worker.become_worker') }}" class="btn-primary">
+                        <i data-lucide="file-text"></i>
+                        Заполнить анкету
+                    </a>
+                {% elif current_user.role == 'worker' and current_user.is_verified %}
+                    <h3>Нет доступных заявок</h3>
+                    <p>Попробуйте изменить фильтры или подождите новые заявки</p>
+                {% else %}
+                    <h3>Нет доступных заявок</h3>
+                    <p>Создайте первую заявку или подождите новые</p>
+                    {% if current_user.role in ['dispatcher', 'senior_dispatcher', 'director', 'creator'] %}
+                    <a href="{{ url_for('tasks.create_task') }}" class="btn-primary">
+                        <i data-lucide="plus-circle"></i>
+                        Создать заявку
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- FAB -->
+    {% if current_user.role in ['dispatcher', 'senior_dispatcher', 'director', 'creator'] %}
+    <a href="{{ url_for('tasks.create_task') }}" class="fab-create">
+        <i data-lucide="plus"></i>
+    </a>
+    {% endif %}
+</div>
+
+<!-- ВЫДВИЖНАЯ ПАНЕЛЬ ДЕТАЛЕЙ -->
+<div id="task-detail-panel" class="task-detail-panel">
+    <div class="task-detail-header">
+        <button type="button" class="task-detail-close" aria-label="Закрыть">
+            <i data-lucide="x"></i>
+        </button>
+        <h3>Детали заявки</h3>
+    </div>
+    <div class="task-detail-content" id="task-detail-content">
+        <div class="task-detail-loading">
+            <div class="spinner"></div>
+            <p>Загрузка...</p>
+        </div>
+    </div>
+    <div class="task-detail-footer" id="task-detail-footer"></div>
+</div>
+
+<!-- Контекстное меню (ПКМ и долгое нажатие) -->
+<div id="task-context-menu" class="context-menu" style="display: none;">
+    <div class="context-menu-item" data-action="edit"> Редактировать</div>
+    <div class="context-menu-item" data-action="copy"> Копировать</div>
+    <div class="context-menu-item" data-action="delete"> Удалить</div>
+</div>
+
+<div id="task-detail-overlay" class="task-detail-overlay"></div>
+
+<div id="share-task-modal" class="custom-modal-overlay b2b-modal-overlay" hidden>
+    <div class="modal-body-wrapper forward-modal-panel" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Переслать заявку в чат</h3>
+        </div>
+        <div class="modal-content">
+            <p class="forward-modal-label">Выберите получателей</p>
+            <input type="text" id="share-task-search-input" placeholder="Поиск получателя..." class="b2b-input forward-search-input" autocomplete="off">
+            <div id="share-task-users-list" class="forward-users-list b2b-picker-list" role="listbox" aria-multiselectable="true"></div>
+        </div>
+        <div class="modal-footer forward-modal-footer">
+            <button type="button" class="forward-btn forward-btn-cancel" id="share-task-cancel-btn">Отмена</button>
+            <button type="button" class="forward-btn forward-btn-submit" id="share-task-submit-btn" disabled>Переслать</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/task-worker-actions.js') }}?v=1.5"></script>
+<script>
+// Переменные
+let currentTaskId = null;
+let currentShareTaskId = null;
+let selectedShareChatIds = [];
+
+window.ForwardTargetsList = {{ share_forward_targets|default([])|tojson }};
+window.UserChatsList = window.ForwardTargetsList;
+
+function escapeShareHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function setShareTaskSubmitEnabled() {
+    const btn = document.getElementById('share-task-submit-btn');
+    if (btn) btn.disabled = selectedShareChatIds.length === 0;
+}
+
+function renderShareTaskTargetsList() {
+    const listEl = document.getElementById('share-task-users-list');
+    const list = window.ForwardTargetsList || window.UserChatsList || [];
+    if (!listEl) return;
+
+    const searchInput = document.getElementById('share-task-search-input');
+    const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+    if (!list.length) {
+        listEl.innerHTML = '<div class="forward-users-empty">Нет доступных получателей</div>';
+        setShareTaskSubmitEnabled();
+        return;
+    }
+
+    const filtered = list.filter(function (item) {
+        if (!query) return true;
+        return String(item.name || '').toLowerCase().includes(query);
+    });
+
+    if (!filtered.length) {
+        listEl.innerHTML = '<div class="forward-users-empty">Никого не найдено</div>';
+        setShareTaskSubmitEnabled();
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(function (item) {
+        const chatId = item.id;
+        const isActive = selectedShareChatIds.includes(Number(chatId));
+        const name = escapeShareHtml(item.name || 'Чат');
+        const initials = escapeShareHtml(item.initials || (item.name && item.name.charAt(0)) || '?');
+        const avatar = item.avatar
+            ? '<img src="' + escapeShareHtml(item.avatar) + '" alt="" class="forward-user-avatar-img">'
+            : '<span class="forward-user-avatar-initials">' + initials + '</span>';
+        return '<button type="button" class="forward-user-item b2b-picker-item' + (isActive ? ' active' : '') + '" data-chat-id="' + chatId + '" role="option" aria-selected="' + isActive + '">' +
+            '<span class="forward-user-avatar">' + avatar + '</span>' +
+            '<span class="forward-user-name">' + name + '</span>' +
+            '</button>';
+    }).join('');
+    setShareTaskSubmitEnabled();
+}
+
+function toggleShareTaskTarget(chatId, itemEl) {
+    const id = parseInt(chatId, 10);
+    if (!id) return;
+    const idx = selectedShareChatIds.indexOf(id);
+    if (idx >= 0) {
+        selectedShareChatIds.splice(idx, 1);
+    } else {
+        selectedShareChatIds.push(id);
+    }
+    const btn = itemEl || document.querySelector('#share-task-users-list .forward-user-item[data-chat-id="' + id + '"]');
+    if (btn) {
+        const active = selectedShareChatIds.includes(id);
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    }
+    setShareTaskSubmitEnabled();
+}
+
+async function loadShareTaskTargets() {
+    try {
+        const res = await fetch('/chat/forward-targets', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        });
+        const data = await res.json();
+        if (res.ok && data.success && Array.isArray(data.targets)) {
+            window.ForwardTargetsList = data.targets;
+            window.UserChatsList = data.targets;
+        }
+    } catch (e) {
+        console.warn('[ShareTask] targets fetch failed', e);
+    }
+}
+
+function closeTaskDetail() {
+    const panel = document.getElementById('task-detail-panel');
+    const overlay = document.getElementById('task-detail-overlay');
+    const footer = document.getElementById('task-detail-footer');
+
+    if (panel) {
+        panel.classList.remove('open');
+        panel.classList.remove('blur-enabled');
+    }
+    if (overlay) overlay.classList.remove('active');
+    if (footer) {
+        footer.innerHTML = '';
+        footer.className = 'task-detail-footer';
+    }
+    document.body.style.overflow = '';
+    currentTaskId = null;
+}
+
+function bindTaskDetailDismissHandlers() {
+    const panel = document.getElementById('task-detail-panel');
+    const overlay = document.getElementById('task-detail-overlay');
+    const closeBtn = panel ? panel.querySelector('.task-detail-close') : null;
+    if (!panel || panel.dataset.dismissBound === '1') return;
+    panel.dataset.dismissBound = '1';
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeTaskDetail();
+        });
+    }
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeTaskDetail();
+        });
+    }
+}
+
+function closeShareTaskModal() {
+    currentShareTaskId = null;
+    selectedShareChatIds = [];
+    const modal = document.getElementById('share-task-modal');
+    const searchInput = document.getElementById('share-task-search-input');
+    if (searchInput) searchInput.value = '';
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    setTimeout(function () {
+        if (!modal.classList.contains('active')) modal.hidden = true;
+    }, 220);
+}
+
+async function openShareTaskModal(taskId) {
+    const id = taskId || currentTaskId;
+    if (!id) return;
+    currentShareTaskId = id;
+    selectedShareChatIds = [];
+    if (!window.ForwardTargetsList || !window.ForwardTargetsList.length) {
+        await loadShareTaskTargets();
+    }
+    const modal = document.getElementById('share-task-modal');
+    if (modal) {
+        modal.hidden = false;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    renderShareTaskTargetsList();
+    if (typeof refreshIcons === 'function') refreshIcons(modal);
+}
+
+async function submitShareTask() {
+    if (!currentShareTaskId || !selectedShareChatIds.length) {
+        showToast('Выберите получателей для пересылки', 'error');
+        return;
+    }
+    const submitBtn = document.getElementById('share-task-submit-btn');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+        const res = await fetch('/tasks/' + currentShareTaskId + '/share-to-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ chat_ids: selectedShareChatIds })
+        });
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (parseErr) {
+            console.error(parseErr);
+            showToast('Ошибка ответа сервера', 'error');
+            setShareTaskSubmitEnabled();
+            return;
+        }
+        if (res.ok && (data.status === 'success' || data.success)) {
+            closeShareTaskModal();
+            const n = data.processed || selectedShareChatIds.length;
+            showToast(n === 1 ? 'Заявка отправлена в чат' : 'Заявка отправлена (' + n + ')', 'success');
+        } else {
+            showToast(data.error || 'Ошибка пересылки', 'error');
+            setShareTaskSubmitEnabled();
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Ошибка сети при пересылке', 'error');
+        setShareTaskSubmitEnabled();
+    }
+}
+
+function bindForwardChatButton(root, taskId) {
+    const scope = root || document;
+    scope.querySelectorAll('.btn-forward-chat').forEach(function(btn) {
+        if (btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tid = btn.dataset.shareTaskId || taskId || currentTaskId;
+            openShareTaskModal(tid);
+        });
+    });
+}
+
+function bindShareTaskModalHandlers() {
+    const modal = document.getElementById('share-task-modal');
+    const cancelBtn = document.getElementById('share-task-cancel-btn');
+    const submitBtn = document.getElementById('share-task-submit-btn');
+    const listEl = document.getElementById('share-task-users-list');
+    const searchInput = document.getElementById('share-task-search-input');
+    if (!modal || modal.dataset.bound === '1') return;
+    modal.dataset.bound = '1';
+
+    if (cancelBtn) cancelBtn.addEventListener('click', closeShareTaskModal);
+    if (submitBtn) submitBtn.addEventListener('click', submitShareTask);
+    if (listEl) {
+        listEl.addEventListener('click', function (e) {
+            const item = e.target.closest('.forward-user-item');
+            if (!item || !item.dataset.chatId) return;
+            toggleShareTaskTarget(item.dataset.chatId, item);
+        });
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', renderShareTaskTargetsList);
+    }
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeShareTaskModal();
+    });
+}
+
+// Фильтры
+function toggleFilters() {
+    const panel = document.getElementById('filter-panel');
+    const arrow = document.getElementById('filter-arrow');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        arrow.textContent = '▲';
+        if (window.TaskUI && panel.dataset.filtersReady !== '1') {
+            window.TaskUI.initListFilters();
+            panel.dataset.filtersReady = '1';
+        }
+    } else {
+        panel.style.display = 'none';
+        arrow.textContent = '▼';
+    }
+}
+
+// Обработчик клика по пунктам меню
+document.getElementById('task-context-menu')?.addEventListener('click', function(e) {
+    const item = e.target.closest('.context-menu-item');
+    if (!item) return;
+    
+    const action = item.dataset.action;
+    const taskId = this.dataset.activeId;
+    
+    if (action === 'edit' && taskId) {
+        window.location.href = '/task/edit/' + taskId;
+    } else if (action === 'copy' && taskId) {
+        window.location.href = '/task/copy/' + taskId;
+    } else if (action === 'delete' && taskId) {
+        if (confirm('Удалить заявку? Это действие необратимо.')) {
+            requestTaskDelete(taskId);
+        }
+    }
+    
+    this.style.display = 'none';
+});
+
+// Открыть фильтры если есть параметры
+const hasFilters = {{ 'true' if (request.args.get('search') or request.args.get('city_id') or request.args.get('execution_date')) else 'false' }};
+if (hasFilters) {
+    const panel = document.getElementById('filter-panel');
+    const arrow = document.getElementById('filter-arrow');
+    if (panel) {
+        panel.style.display = 'block';
+        if (arrow) arrow.textContent = '▲';
+        if (window.TaskUI) {
+            window.TaskUI.initListFilters();
+            panel.dataset.filtersReady = '1';
+        }
+    }
+}
+
+// handleTaskAccept / updateWorkerStatus — static/js/task-worker-actions.js
+
+// Открыть детали в выдвижной панели
+function renderDetailCardIcon(name) {
+    return `<span class="detail-card-icon-lucide"><i data-lucide="${name}"></i></span>`;
+}
+
+function renderTaskStatusBadge(status) {
+    const labels = {
+        recruiting: ['Набор', 'status-recruiting'],
+        in_progress: ['В работе', 'status-in-progress'],
+        on_site: ['На проверке', 'status-in-progress'],
+        waiting_confirm: ['Ожидает подтверждения', 'status-in-progress'],
+        done: ['Завершена', 'status-done'],
+    };
+    const [label, cls] = labels[status] || ['В работе', 'status-in-progress'];
+    return `<span class="detail-status-badge ${cls}">${label}</span>`;
+}
+
+function renderWorkersTrackingBlock(task) {
+    if (!task.is_manager || !task.workers || !task.workers.length) return '';
+    return `
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('users')}
+                <h4>Исполнители</h4>
+            </div>
+            <div class="detail-card-body">
+                ${task.workers.map(worker => `
+                    <div class="detail-worker-tracking">
+                        <div class="detail-worker-name profile-trigger" data-profile-user-id="${worker.user_id}" data-profile-context="worker" role="button" tabindex="0" title="Профиль">${escapeHtml(worker.user_name)}</div>
+                        <div class="detail-worker-tracking-meta">${escapeHtml(worker.tracking_summary)}</div>
+                        ${worker.work_duration ? `
+                        <div class="detail-worker-duration">
+                            <i data-lucide="timer"></i>
+                            <span>Итого: ${escapeHtml(worker.work_duration)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderTaskCardTrackingHtml(taskId, tracking) {
+    if (!tracking || tracking.is_finished || tracking.worker_status === 'completed') {
+        return '';
+    }
+    const ws = tracking.worker_status || 'assigned';
+    let label = '';
+    let action = '';
+    let disabled = '';
+    if (ws === 'assigned') {
+        label = 'В пути';
+        action = 'route';
+        if (!tracking.can_en_route) disabled = ' disabled';
+    } else if (ws === 'en_route') {
+        label = 'На месте';
+        action = 'arrive';
+    } else if (ws === 'on_site') {
+        label = 'Закончил';
+        action = 'finish';
+    } else {
+        return '';
+    }
+    return `
+        <div class="task-card-tracking" onclick="event.stopPropagation();">
+            <button type="button" class="task-card-tracking-btn"
+                    data-task-id="${taskId}" data-worker-action="${action}"${disabled}>${label}</button>
+        </div>
+    `;
+}
+
+function refreshTaskCardTracking(taskId, tracking) {
+    const card = document.querySelector(`.task-card[data-id="${taskId}"], .task-item-profile[data-task-id="${taskId}"]`);
+    if (!card) return;
+    const existing = card.querySelector('.task-card-tracking');
+    const html = renderTaskCardTrackingHtml(taskId, tracking);
+    if (existing) {
+        if (html) {
+            existing.outerHTML = html;
+        } else {
+            existing.remove();
+        }
+    } else if (html) {
+        const anchor = card.querySelector('.task-meta') || card.querySelector('.task-item-description') || card.querySelector('.task-item-header');
+        if (anchor) {
+            anchor.insertAdjacentHTML('afterend', html);
+        }
+    }
+    bindTaskCardTrackingButtons(card);
+}
+
+function bindTaskCardTrackingButtons(root = document) {
+    root.querySelectorAll('.task-card-tracking-btn').forEach(btn => {
+        if (btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const taskId = btn.dataset.taskId;
+            updateWorkerStatus(taskId, btn.dataset.workerAction, btn, { fromCard: true });
+        });
+    });
+}
+
+function buildTaskCardMetaHtml(task) {
+    const execDate = task.execution_date || '';
+    const execTime = task.execution_time || '';
+    const dateLine = execDate ? `
+        <div class="task-card-meta-row">
+            <i data-lucide="calendar"></i>
+            <span>Дата выполнения: <strong>${escapeHtml(execDate)}${execTime ? ' ' + escapeHtml(execTime) : ''}</strong></span>
+        </div>
+    ` : '';
+    const addressText = task.address ? escapeHtml(task.address) : 'Уточняется у диспетчера';
+    return `
+        <div class="task-card-meta-line">
+            ${dateLine}
+            <div class="task-card-meta-row">
+                <i data-lucide="map-pin" class="task-card-meta-pin"></i>
+                <span>Адрес: <strong>${addressText}</strong></span>
+            </div>
+        </div>
+    `;
+}
+
+const CURRENT_USER_ID = {{ current_user.id }};
+const CURRENT_USER_ROLE = {{ current_user.role|tojson }};
+const CURRENT_USER_WORKSPACE_ID = {{ current_user.workspace_id or 'null' }};
+const CONFIRM_ROLES = ['creator', 'director', 'senior_dispatcher', 'dispatcher'];
+
+function taskNeedsConfirmation(task) {
+    if (['on_site', 'waiting_confirm'].includes(task.status)) return true;
+    if (task.status === 'in_progress' && Array.isArray(task.workers) && task.workers.length) {
+        return task.workers.every(w => w.worker_status === 'completed');
+    }
+    return Boolean(task.can_confirm_completion);
+}
+
+function canUserConfirmTask(task) {
+    const canManage = CONFIRM_ROLES.includes(CURRENT_USER_ROLE)
+        || Number(task.created_by_id) === Number(CURRENT_USER_ID);
+    return canManage && taskNeedsConfirmation(task);
+}
+
+function renderManagerCompletionActions(task) {
+    if (!canUserConfirmTask(task)) return '';
+    return `
+        <div class="task-actions-panel" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+        <form action="/task/complete/${task.id}" method="POST" style="width: 100%;">
+            <button type="submit" class="btn-success-action" style="width: 100%; padding: 12px; background: var(--success, #27ae60); color: white; border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i data-lucide="check-circle"></i> Подтвердить завершение
+            </button>
+        </form>
+        <form action="/task/reject/${task.id}" method="POST" style="width: 100%;">
+            <button type="submit" class="btn-reject-action" style="width: 100%;">
+                <i data-lucide="rotate-ccw"></i> Отклонить / Вернуть в работу
+            </button>
+        </form>
+        </div>
+    `;
+}
+
+function renderWorkerFooter(task) {
+    if (task.can_take && !task.is_archived) {
+        return `
+            <div class="detail-actions-sticky worker-actions-footer task-detail-actions-worker" data-task-id="${task.id}">
+                <div class="accept-task-wrapper">
+                    <button type="button" class="gruzz-video-btn" data-task-id="${task.id}">
+                        <div class="btn-content-wrapper">
+                            <div class="state-idle">
+                                <svg class="icon-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M5 18H19C20.1046 18 21 17.1046 21 16V6C21 4.89543 20.1046 4 19 4H5C3.89543 4 3 4.89543 3 6V16C3 17.1046 3.89543 18 5 18Z"/>
+                                    <circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+                                    <path d="M3 10H10" opacity="0.5"/>
+                                </svg>
+                                <span class="main-label">Взять в работу</span>
+                            </div>
+                            <div class="state-animating">
+                                <video class="btn-video" playsinline muted preload="metadata" disablepictureinpicture>
+                                    <source src="{{ url_for('static', filename='video/gruzz_accept.mp4') }}" type="video/mp4">
+                                </video>
+                            </div>
+                            <div class="state-success">
+                                <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                                    <path d="M20 6L9 17L4 12" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="success-label">Заявка у вас!</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    if (!task.is_verified_worker || !task.user_tracking) {
+        return task.chat_id ? `
+            <div class="detail-actions-sticky worker-actions-footer">
+                <a href="/chat/${task.chat_id}" class="btn-secondary detail-action-btn" onclick="closeTaskDetail()">
+                    <i data-lucide="message-circle"></i> Перейти в чат
+                </a>
+            </div>
+        ` : '';
+    }
+
+    const tracking = task.user_tracking;
+    const ws = tracking.worker_status || 'assigned';
+    let rejectHtml = '';
+
+    if (task.can_reject_assignment) {
+        rejectHtml = `
+            <button type="button" class="worker-action-btn worker-reject-btn" data-worker-action="reject">
+                Отказаться от заявки
+            </button>`;
+    } else if (task.reject_block_reason && ws !== 'on_site' && ws !== 'completed') {
+        rejectHtml = `<div class="worker-done-notice" title="${escapeHtml(task.reject_block_reason)}">${escapeHtml(task.reject_block_reason)}</div>`;
+    }
+
+    let mainActionHtml = '';
+    if (tracking.can_submit_confirmation) {
+        mainActionHtml = `
+            <button type="button" class="worker-action-btn worker-action-accent worker-submit-btn btn-submit"
+                    data-worker-action="submit">
+                <i data-lucide="send"></i> Отправить на подтверждение
+            </button>`;
+    } else if (ws === 'completed' || tracking.is_finished || tracking.awaiting_confirmation) {
+        mainActionHtml = `<div class="worker-done-notice">Работа завершена, ожидайте проверку диспетчера</div>`;
+    } else if (ws === 'assigned') {
+        const disabled = tracking.can_en_route ? '' : ' disabled';
+        mainActionHtml = `
+            <button type="button" class="worker-action-btn worker-action-accent btn-route"
+                    data-worker-action="route"${disabled}>В пути</button>`;
+    } else if (ws === 'en_route') {
+        mainActionHtml = `
+            <button type="button" class="worker-action-btn worker-action-accent btn-arrive" data-worker-action="arrive">На месте</button>`;
+    } else if (ws === 'on_site') {
+        mainActionHtml = `
+            <button type="button" class="worker-action-btn worker-action-accent btn-finish" data-worker-action="finish">Закончил</button>`;
+    }
+
+    const actionHtml = rejectHtml + mainActionHtml;
+    if (!actionHtml) return '';
+    return `<div class="detail-actions-sticky worker-actions-footer task-detail-actions-worker" data-task-id="${task.id}">${actionHtml}</div>`;
+}
+
+function injectTaskDetailStylesFromDoc(doc) {
+    var bucket = document.getElementById('task-detail-styles-bucket');
+    if (!bucket) {
+        bucket = document.createElement('div');
+        bucket.id = 'task-detail-styles-bucket';
+        bucket.hidden = true;
+        document.head.appendChild(bucket);
+    }
+    bucket.innerHTML = '';
+    doc.querySelectorAll('style').forEach(function(styleNode) {
+        bucket.appendChild(styleNode.cloneNode(true));
+    });
+}
+
+function bindAssignmentControls(taskId, root) {
+    const scope = root || document;
+
+    if (window.B2bSelect && typeof window.B2bSelect.init === 'function') {
+        window.B2bSelect.init(scope);
+    }
+
+    scope.querySelectorAll('.detail-assignment-picker-wrap .b2b-select-wrapper').forEach(wrap => {
+        const inputEl = wrap.querySelector('input[type="hidden"]');
+        if (!inputEl || inputEl.dataset.bound === '1') return;
+        inputEl.dataset.bound = '1';
+        inputEl.addEventListener('change', async function () {
+            const workerId = this.value;
+            if (!workerId) return;
+            this.disabled = true;
+            wrap.classList.add('is-disabled');
+            try {
+                const res = await fetch(`/task/${taskId}/assign-workers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ worker_ids: [parseInt(workerId, 10)] }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || (data.errors && data.errors[0]) || 'Ошибка');
+                    if (wrap._b2bSetValue) wrap._b2bSetValue('', 'Выберите исполнителя…', true);
+                    return;
+                }
+                openTaskDetail(taskId);
+                if (typeof window.handleTaskUpdate === 'function') {
+                    window.handleTaskUpdate({
+                        id: taskId,
+                        assignments: data.assignments,
+                        assigned_count: data.assigned_count,
+                        required_workers: data.required_workers,
+                    });
+                }
+            } catch (e) {
+                alert('Ошибка сети');
+                if (wrap._b2bSetValue) wrap._b2bSetValue('', 'Выберите исполнителя…', true);
+            } finally {
+                this.disabled = false;
+                wrap.classList.remove('is-disabled');
+            }
+        });
+    });
+
+    if (typeof bindRemoveWorkerButtons === 'function') {
+        bindRemoveWorkerButtons(taskId, scope);
+    }
+}
+
+function openTaskDetail(taskId) {
+    const panel = document.getElementById('task-detail-panel');
+    const overlay = document.getElementById('task-detail-overlay');
+    const content = document.getElementById('task-detail-content');
+    const footer = document.getElementById('task-detail-footer');
+    
+    if (!panel || !overlay) return;
+    
+    content.innerHTML = '<div class="task-detail-loading"><div class="spinner"></div><p>Загрузка...</p></div>';
+    if (footer) {
+        footer.innerHTML = '';
+        footer.className = 'task-detail-footer';
+    }
+    
+    document.body.style.overflow = 'hidden';
+    panel.classList.remove('blur-enabled');
+    
+    requestAnimationFrame(() => {
+        panel.classList.add('open');
+        overlay.classList.add('active');
+    });
+    
+    setTimeout(() => {
+        panel.classList.add('blur-enabled');
+    }, 320);
+    
+    fetch('/tasks/detail/' + taskId)
+        .then(function(response) {
+            if (!response.ok) throw new Error('load failed');
+            return response.text();
+        })
+        .then(function(html) {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            injectTaskDetailStylesFromDoc(doc);
+            const container = doc.querySelector('.task-detail-container');
+            if (!container) throw new Error('no container');
+
+            const scroll = container.querySelector('.detail-content-scroll');
+            const forwardFooter = container.querySelector('.btn-forward-chat-footer');
+
+            content.innerHTML = scroll ? scroll.innerHTML : container.innerHTML;
+
+            if (footer) {
+                footer.innerHTML = '';
+                footer.className = 'task-detail-footer';
+                mountDetailActions(content, footer);
+                if (forwardFooter) {
+                    footer.appendChild(forwardFooter.cloneNode(true));
+                }
+            }
+
+            window.currentTaskId = taskId;
+            if (footer) {
+                footer.dataset.taskId = String(taskId);
+            }
+            if (typeof bindDetailPanelInteractions === 'function') {
+                bindDetailPanelInteractions(taskId, content);
+            }
+            if (typeof bindAssignmentControls === 'function') {
+                bindAssignmentControls(taskId, content);
+            }
+            bindForwardChatButton(footer, taskId);
+            bindForwardChatButton(content, taskId);
+            requestAnimationFrame(function() {
+                if (typeof refreshIcons === 'function') refreshIcons();
+            });
+        })
+        .catch(function() {
+            content.innerHTML = '<div class="detail-error" style="text-align:center;padding:40px;">Ошибка загрузки</div>';
+        });
+}
+
+const IS_WORKER_VIEW = {{ 'true' if current_user.role == 'worker' else 'false' }};
+
+function renderWorkerTaskDetailPanel(task) {
+    const priceStr = Number(task.price || 0).toLocaleString('ru-RU');
+    const execTime = task.execution_time || '08:00';
+    const addressText = task.address ? escapeHtml(task.address) : 'Уточняется у диспетчера';
+
+    return `
+        <div class="detail-card">
+            <div class="detail-card-body">
+                <h2 class="worker-task-title">${escapeHtml(task.title)}</h2>
+                ${task.description ? `<p class="worker-task-description">${escapeHtml(task.description)}</p>` : ''}
+                <ul class="worker-meta-list">
+                    ${task.execution_date ? `
+                    <li class="worker-meta-row">
+                        <i data-lucide="calendar"></i>
+                        <span><span class="worker-meta-label">Дата выполнения:</span> ${escapeHtml(task.execution_date)}</span>
+                    </li>
+                    ` : ''}
+                    <li class="worker-meta-row">
+                        <i data-lucide="clock"></i>
+                        <span><span class="worker-meta-label">Время начала:</span> ${escapeHtml(execTime)}</span>
+                    </li>
+                    <li class="worker-meta-row">
+                        <i data-lucide="map-pin"></i>
+                        <span><span class="worker-meta-label">Адрес:</span> ${addressText}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('credit-card')}
+                <h4>Оплата</h4>
+            </div>
+            <div class="detail-card-body">
+                <div class="detail-price-large">${priceStr} ₽</div>
+            </div>
+        </div>
+
+        ${renderWorkerFooter(task)}
+    `;
+}
+
+function renderManagerTaskDetailPanel(task) {
+    const priceStr = Number(task.price || 0).toLocaleString('ru-RU');
+    const execTime = task.execution_time || '08:00';
+    const taskNumberBlock = task.task_number ? `
+        <div class="detail-field-compact">
+            <div class="detail-value">${escapeHtml(task.task_number)}</div>
+            <div class="detail-label-small">Номер заявки</div>
+        </div>
+    ` : '';
+
+    return `
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('file-text')}
+                <h4>Основное</h4>
+            </div>
+            <div class="detail-card-body">
+                ${taskNumberBlock}
+                <div class="detail-field-compact">
+                    <div class="detail-value-large">${escapeHtml(task.title)}</div>
+                    <div class="detail-label-small">Название</div>
+                </div>
+                ${task.description ? `
+                <div class="detail-field-compact">
+                    <div class="detail-value">${escapeHtml(task.description)}</div>
+                    <div class="detail-label-small">Описание</div>
+                </div>
+                ` : ''}
+                <div class="detail-time-row">
+                    <i data-lucide="clock"></i>
+                    <span>Время начала: <strong>${escapeHtml(execTime)}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('credit-card')}
+                <h4>Оплата</h4>
+            </div>
+            <div class="detail-card-body">
+                <div class="detail-price-large">${priceStr} ₽</div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('activity')}
+                <h4>Статус</h4>
+            </div>
+            <div class="detail-card-body">
+                <div class="detail-status-row">
+                    ${renderTaskStatusBadge(task.status)}
+                </div>
+                <div class="detail-workers-meta">
+                    <i data-lucide="users"></i>
+                    <span>${task.assigned_count}/${task.required_workers} исполнителей</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('map-pin')}
+                <h4>Локация</h4>
+            </div>
+            <div class="detail-card-body">
+                ${task.city ? `
+                <div class="detail-field-compact">
+                    <div class="detail-value">${escapeHtml(task.city)}</div>
+                    <div class="detail-label-small">Город</div>
+                </div>
+                ` : ''}
+                ${task.address ? `
+                <div class="detail-field-compact">
+                    <div class="detail-value">${escapeHtml(task.address)}</div>
+                    <div class="detail-label-small">Адрес</div>
+                </div>
+                ` : ''}
+                ${task.client ? `
+                <div class="detail-field-compact">
+                    <div class="detail-value">${escapeHtml(task.client)}</div>
+                    <div class="detail-label-small">Клиент</div>
+                </div>
+                ` : '<div class="detail-value-muted">Клиент не указан</div>'}
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-card-header">
+                ${renderDetailCardIcon('calendar')}
+                <h4>Информация</h4>
+            </div>
+            <div class="detail-card-body">
+                <div class="detail-info-row">
+                    <span class="detail-info-label">Создана:</span>
+                    <span class="detail-info-value">${escapeHtml(task.created_at || '')}</span>
+                </div>
+                ${task.execution_date ? `
+                <div class="detail-info-row">
+                    <span class="detail-info-label">Дата выполнения:</span>
+                    <span class="detail-info-value">${escapeHtml(task.execution_date)}</span>
+                </div>
+                ` : ''}
+                ${task.completed_at ? `
+                <div class="detail-info-row">
+                    <span class="detail-info-label">Завершена:</span>
+                    <span class="detail-info-value">${escapeHtml(task.completed_at)}</span>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+
+        ${renderWorkersTrackingBlock(task)}
+
+        <div class="detail-actions-sticky">
+            ${renderManagerCompletionActions(task)}
+            ${task.chat_id ? `<a href="/chat/${task.chat_id}" class="btn-secondary detail-action-btn" onclick="closeTaskDetail()"><i data-lucide="message-circle"></i> Перейти в чат</a>` : ''}
+        </div>
+    `;
+}
+
+function renderTaskDetailPanel(task) {
+    if (IS_WORKER_VIEW) return renderWorkerTaskDetailPanel(task);
+    return renderManagerTaskDetailPanel(task);
+}
+
+function mountDetailActions(contentEl, footerEl) {
+    if (!contentEl || !footerEl) return;
+    footerEl.innerHTML = '';
+    footerEl.className = 'task-detail-footer';
+    const sticky = contentEl.querySelector('.detail-actions-sticky');
+    if (!sticky) return;
+    footerEl.innerHTML = sticky.innerHTML;
+    footerEl.classList.add('detail-actions-sticky');
+    if (sticky.classList.contains('worker-actions-footer')) {
+        footerEl.classList.add('worker-actions-footer');
+        footerEl.classList.add('task-detail-actions-worker');
+    }
+    if (sticky.dataset.taskId) {
+        footerEl.dataset.taskId = sticky.dataset.taskId;
+    }
+    sticky.remove();
+}
+
+function buildTaskStatusBadgeHtml(status) {
+    const labels = {
+        recruiting: ['Набор', 'status-recruiting'],
+        in_progress: ['В работе', 'status-in-progress'],
+        on_site: ['На проверке', 'status-in-progress'],
+        waiting_confirm: ['Ожидает подтверждения', 'status-in-progress'],
+        done: ['Завершена', 'status-done'],
+        failed: ['Провалена', 'status-cancelled'],
+    };
+    const [label, cls] = labels[status] || ['В работе', 'status-in-progress'];
+    return `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+const PINNED_TASK_IDS = {{ pinned_tasks_ids | tojson }};
+
+function buildTaskCardHtml(task, options = {}) {
+    const taskId = task.id || task.task_id;
+    const taskTitle = resolveTaskTitle(task);
+    const priceNum = Number(resolveTaskPrice(task));
+    const priceStr = priceNum.toLocaleString('ru-RU');
+    const pinnedIds = options.pinnedIds || PINNED_TASK_IDS || [];
+    const showPin = options.showPin !== false;
+    const showNumber = options.showTaskNumber !== false;
+    const taskNumber = (showNumber && task.task_number)
+        ? `<div class="task-number">№ ${escapeHtml(task.task_number)}</div>`
+        : '';
+    const isPinned = pinnedIds.includes(taskId) || pinnedIds.includes(Number(taskId));
+    const pinBtn = showPin
+        ? `<button class="task-pin-btn${isPinned ? ' active' : ''}" onclick="event.stopPropagation(); togglePin(${taskId})" title="Закрепить"><i data-lucide="pin"></i></button>`
+        : '';
+
+    return `
+        <div class="task-card" data-id="${taskId}" data-task-id="${taskId}" onclick="openTaskDetail(${taskId})">
+            <div class="task-main-info">
+                ${taskNumber}
+                <div class="task-title">${escapeHtml(taskTitle)}</div>
+                ${buildCompactTaskMetaHtml(task)}
+            </div>
+            <div class="task-right">
+                <div class="task-price">${priceStr} ₽</div>
+                <div class="task-status">${buildTaskStatusBadgeHtml(task.status || 'recruiting')}</div>
+                ${pinBtn}
+            </div>
+        </div>
+    `;
+}
+
+let tasksGridDefaultHtml = null;
+let archiveMode = false;
+
+function renderArchiveTasks(tasks) {
+    const grid = document.getElementById('tasksGrid');
+    if (!grid) return;
+
+    if (!tasks.length) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <i data-lucide="archive"></i>
+                <h3>Архив пуст</h3>
+                <p>Завершённые заявки появятся здесь</p>
+            </div>
+        `;
+        if (typeof refreshIcons === 'function') refreshIcons();
+        return;
+    }
+
+    grid.innerHTML = tasks.map(task => buildTaskCardHtml(task)).join('');
+    if (typeof refreshIcons === 'function') refreshIcons();
+}
+
+async function toggleArchiveView() {
+    if (!archiveMode) {
+        window.location.href = '/tasks/archive';
+        return;
+    }
+    window.location.href = '/tasks';
+}
+
+// Закрепить/открепить задачу
+function togglePin(taskId) {
+    fetch(`/pin/task/${taskId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            showToast(data.pinned ? 'Заявка закреплена' : 'Заявка откреплена', 'success');
+            setTimeout(() => location.reload(), 300);
+        })
+        .catch(() => showToast('Ошибка', 'error'));
+}
+
+// Уведомления
+function showToast(message, type = 'info') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        `;
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    const bgColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+    toast.style.cssText = `
+        background: ${bgColor};
+        color: white;
+        padding: 10px 20px;
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: var(--shadow-lg);
+        animation: slideUp 0.3s ease;
+        pointer-events: auto;
+    `;
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
+}
+
+// Экранирование HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Закрытие по Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    const shareModal = document.getElementById('share-task-modal');
+    if (shareModal && shareModal.classList.contains('active')) {
+        closeShareTaskModal();
+        return;
+    }
+    const panel = document.getElementById('task-detail-panel');
+    if (panel && panel.classList.contains('open')) {
+        closeTaskDetail();
+    }
+});
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        bindTaskDetailDismissHandlers();
+        bindShareTaskModalHandlers();
+        if (typeof refreshIcons === 'function') refreshIcons();
+    });
+} else {
+    bindTaskDetailDismissHandlers();
+    bindShareTaskModalHandlers();
+}
+
+// Экспорт функций
+window.toggleFilters = toggleFilters;
+window.openTaskDetail = openTaskDetail;
+window.closeTaskDetail = closeTaskDetail;
+window.openShareTaskModal = openShareTaskModal;
+window.closeShareTaskModal = closeShareTaskModal;
+window.togglePin = togglePin;
+</script>
+
+<script>
+// Глобальные функции - объявлены ДО всего остального
+window.contextEditTask = function() {
+    const menu = document.getElementById('task-context-menu');
+    const taskId = menu ? menu.dataset.activeId : null;
+    if (taskId) {
+        window.location.href = '/task/edit/' + taskId;
+    }
+};
+
+window.contextCopyTask = function() {
+    const menu = document.getElementById('task-context-menu');
+    const taskId = menu ? menu.dataset.activeId : null;
+    if (taskId && confirm('Скопировать заявку?')) {
+        window.location.href = '/task/copy/' + taskId;
+    }
+};
+
+window.closeAllContextMenus = function() {
+    const pcMenu = document.getElementById('task-context-menu');
+    const mobileMenu = document.getElementById('task-mobile-menu');
+    if (pcMenu) pcMenu.style.display = 'none';
+    if (mobileMenu) mobileMenu.style.display = 'none';
+};
+
+window.contextDeleteTask = function() {
+    const menu = document.getElementById('task-context-menu');
+    const taskId = menu ? menu.dataset.activeId : null;
+    if (taskId && confirm('Удалить заявку? Это действие необратимо.')) {
+        requestTaskDelete(taskId);
+    }
+};
+</script>
+
+<script>
+// 2. Переменные и функции для работы меню
+let taskTimer;
+const contextMenu = document.getElementById('task-context-menu');
+
+function showMenu(x, y, id) {
+    if (!contextMenu) return;
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = x + 'px';
+    contextMenu.style.top = y + 'px';
+    contextMenu.dataset.activeId = id;  // ← Сохраняем ID
+}
+
+function hideMenu() {
+    if (contextMenu) contextMenu.style.display = 'none';
+}
+
+// 3. Инициализация после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+    const taskCards = document.querySelectorAll('.task-card');
+    
+    taskCards.forEach(card => {
+        // ПКМ на десктопе
+        card.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showMenu(e.pageX, e.pageY, this.dataset.id);
+        });
+        
+        // Долгое нажатие на мобилках
+        card.addEventListener('touchstart', function(e) {
+            const touch = e.touches[0];
+            const taskId = this.dataset.id;
+            
+            taskTimer = setTimeout(() => {
+                if (window.navigator && window.navigator.vibrate) {
+                    try {
+                        window.navigator.vibrate(50);
+                    } catch(e) {}
+                }
+                showMenu(touch.pageX, touch.pageY, taskId);
+            }, 600);
+        });
+        
+        card.addEventListener('touchend', () => clearTimeout(taskTimer));
+        card.addEventListener('touchmove', () => clearTimeout(taskTimer));
+    });
+    
+    // Закрытие меню при клике вне
+    document.addEventListener('click', (e) => {
+        if (contextMenu && !contextMenu.contains(e.target)) {
+            hideMenu();
+        }
+    });
+});
+</script>
+
+<script>
+// Обработчики для real-time обновлений
+function resolveTaskCity(task) {
+    const raw = task.city ?? task.city_name ?? '';
+    if (raw && typeof raw === 'object') {
+        return String(raw.name || raw.title || '').trim();
+    }
+    return String(raw || '').trim();
+}
+
+function resolveTaskTitle(task) {
+    const raw = task.title ?? task.name ?? '';
+    return String(raw || 'Без названия').trim();
+}
+
+function resolveTaskPrice(task) {
+    const raw = task.price ?? task.task_price;
+    if (raw === null || raw === undefined || raw === '') return '0';
+    return String(raw);
+}
+
+function buildAssignedAvatarsHtml(assignments) {
+    const items = Array.isArray(assignments) ? assignments : [];
+    if (!items.length) return '';
+    const visible = items.slice(0, 3);
+    const avatars = visible.map(a => {
+        const name = a.user_name || 'Unknown';
+        const userId = a.user_id || '';
+        const inner = a.user_avatar
+            ? `<img src="${escapeHtml(a.user_avatar)}" alt="${escapeHtml(name)}">`
+            : `<span class="assigned-worker-initials">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
+        return `<div class="assigned-worker-avatar profile-trigger" data-profile-user-id="${userId}" data-profile-context="worker" role="button" tabindex="0" title="${escapeHtml(name)}">${inner}</div>`;
+    }).join('');
+    const more = items.length > 3 ? `<span class="assigned-more">+${items.length - 3}</span>` : '';
+    return `<div class="task-assigned-avatars" onclick="event.stopPropagation();">${avatars}${more}</div>`;
+}
+
+function buildCompactTaskMetaHtml(task) {
+    const execDate = task.execution_date || '';
+    const execTime = task.execution_time || '';
+    const datePart = execDate
+        ? `<span class="meta-item"><i data-lucide="calendar"></i> ${escapeHtml(execDate)}${execTime ? ' ' + escapeHtml(execTime) : ''}</span>`
+        : '';
+    const address = task.address ? escapeHtml(task.address) : 'Адрес уточняется';
+    const avatars = buildAssignedAvatarsHtml(task.assignments || []);
+    const assigned = task.assigned_count ?? (task.assignments || []).length;
+    const required = task.required_workers || 1;
+    const slotsBadge = assigned < required
+        ? `<span class="task-slots-badge">Занято мест: ${assigned} из ${required}</span>`
+        : `<span class="task-slots-badge is-full">Занято мест: ${assigned} из ${required}</span>`;
+    return `
+        <div class="task-compact-meta">
+            ${slotsBadge}
+            ${datePart}
+            <span class="task-address-snippet" title="${address}">${address}</span>
+            ${avatars}
+        </div>
+    `;
+}
+
+function renderTaskAssignedAvatars(card, assignments) {
+    const meta = card.querySelector('.task-compact-meta');
+    if (!meta) return;
+    const existing = meta.querySelector('.task-assigned-avatars');
+    const html = buildAssignedAvatarsHtml(assignments);
+    if (existing) {
+        if (html) existing.outerHTML = html;
+        else existing.remove();
+    } else if (html) {
+        meta.insertAdjacentHTML('beforeend', html);
+    }
+}
+
+function buildExecutorItemHtml(assignment) {
+    const name = assignment.user_name || 'Unknown';
+    const avatarHtml = assignment.user_avatar
+        ? `<img src="${assignment.user_avatar}" alt="">`
+        : (name[0] ? name[0].toUpperCase() : '👤');
+    return `
+        <div class="executor-item profile-trigger" data-profile-user-id="${assignment.user_id}" data-profile-context="worker" role="button" tabindex="0" title="Профиль">
+            <div class="mini-avatar">${avatarHtml}</div>
+            <span class="executor-name">${escapeHtml(name)}</span>
+        </div>
+    `;
+}
+
+function ensureExecutorsBlock(card) {
+    return card.querySelector('.task-assigned-avatars');
+}
+
+function renderTaskExecutors(card, assignments) {
+    renderTaskAssignedAvatars(card, assignments);
+}
+
+function findTaskCardById(taskId) {
+    const id = String(taskId);
+    let card = document.querySelector(
+        `.task-card[data-task-id="${id}"], .task-card[data-id="${id}"], #task-${id}`
+    );
+    if (card) return card;
+    return Array.from(document.querySelectorAll('.task-card')).find(function (c) {
+        return String(c.dataset.taskId || c.dataset.id) === id;
+    }) || null;
+}
+
+function removeDuplicateTaskCards(taskId) {
+    const id = String(taskId);
+    const cards = Array.from(document.querySelectorAll('.task-card')).filter(function (c) {
+        return String(c.dataset.taskId || c.dataset.id) === id;
+    });
+    if (cards.length <= 1) return cards[0] || null;
+    const keep = cards[0];
+    for (let i = 1; i < cards.length; i++) {
+        cards[i].remove();
+    }
+    return keep;
+}
+
+function upsertTaskCardInGrid(task, options) {
+    const tasksGrid = document.getElementById('tasksGrid');
+    if (!tasksGrid) return null;
+
+    const taskId = task.id || task.task_id;
+    if (!taskId) return null;
+
+    removeDuplicateTaskCards(taskId);
+
+    const emptyState = tasksGrid.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+
+    const cardHtml = buildTaskCardHtml(task, options || { showTaskNumber: Boolean(task.task_number) });
+    const existing = findTaskCardById(taskId);
+
+    if (existing) {
+        existing.outerHTML = cardHtml;
+    } else {
+        tasksGrid.insertAdjacentHTML('afterbegin', cardHtml);
+    }
+
+    const card = findTaskCardById(taskId);
+    if (card && task.assignments !== undefined) {
+        renderTaskAssignedAvatars(card, task.assignments);
+    }
+    return card;
+}
+
+window.findTaskCardById = findTaskCardById;
+window.upsertTaskCardInGrid = upsertTaskCardInGrid;
+
+window.handleNewTask = function(task) {
+    console.log('📋 Новая заявка получена через сокет:', task);
+    if (
+        task.workspace_id != null
+        && CURRENT_USER_WORKSPACE_ID != null
+        && task.workspace_id !== CURRENT_USER_WORKSPACE_ID
+    ) {
+        return;
+    }
+    upsertTaskCardInGrid(task);
+    if (typeof refreshIcons === 'function') refreshIcons();
+};
+
+window.handleTaskUpdate = function(task) {
+    console.log('🔄 Обновление заявки через сокет:', task);
+    const taskId = task.id || task.task_id;
+    if (!taskId) return;
+
+    const panel = document.getElementById('task-detail-panel');
+    if (
+        panel && panel.classList.contains('open')
+        && window.currentTaskId
+        && Number(window.currentTaskId) === Number(taskId)
+        && typeof openTaskDetail === 'function'
+    ) {
+        openTaskDetail(taskId);
+    }
+    if (
+        task.workspace_id != null
+        && CURRENT_USER_WORKSPACE_ID != null
+        && task.workspace_id !== CURRENT_USER_WORKSPACE_ID
+    ) {
+        document.querySelectorAll('.task-card').forEach(function (card) {
+            const cid = card.dataset.taskId || card.dataset.id;
+            if (cid && String(cid) === String(taskId)) card.remove();
+        });
+        return;
+    }
+
+    if ((task.status === 'done' || task.status === 'failed') && !archiveMode) {
+        document.querySelectorAll('.task-card').forEach(function (card) {
+            const cid = card.dataset.taskId || card.dataset.id;
+            if (cid && String(cid) === String(taskId)) card.remove();
+        });
+        return;
+    }
+
+    const tasksGrid = document.getElementById('tasksGrid');
+    if (!tasksGrid) return;
+
+    upsertTaskCardInGrid(task);
+    if (typeof refreshIcons === 'function') refreshIcons();
+};
+
+window.handleTaskDelete = function(task) {
+    const taskId = task.id || task.task_id;
+    if (!taskId) return;
+    document.querySelectorAll('.task-card').forEach(function(card) {
+        const cid = card.dataset.id || card.dataset.taskId;
+        if (cid && String(cid) === String(taskId)) card.remove();
+    });
+    document.querySelectorAll('.task-mini-card').forEach(function(card) {
+        const onclick = card.getAttribute('onclick') || '';
+        if (onclick.indexOf('(' + taskId + ')') !== -1) card.remove();
+    });
+    const panel = document.getElementById('task-detail-panel');
+    const overlay = document.getElementById('task-detail-overlay');
+    if (panel && panel.dataset.activeTaskId === String(taskId)) {
+        panel.classList.remove('open');
+        if (overlay) overlay.classList.remove('open');
+        panel.dataset.activeTaskId = '';
+    }
+};
+
+window.handleTaskCancelled = function(payload) {
+    const msg = (payload && payload.message) || 'Внимание! Заявка отменена диспетчером.';
+    if (typeof window.showToast === 'function') {
+        window.showToast(msg, 'error');
+    } else {
+        alert(msg);
+    }
+    if (payload && typeof window.handleTaskDelete === 'function') {
+        window.handleTaskDelete(payload);
+    }
+};
+
+function requestTaskDelete(taskId) {
+    if (!taskId) return;
+    fetch('/task/delete/' + taskId, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        },
+    })
+        .then(function(res) {
+            return res.json().then(function(data) {
+                return { ok: res.ok, data: data };
+            });
+        })
+        .then(function(result) {
+            if (!result.ok || !result.data || result.data.status !== 'success') {
+                alert((result.data && result.data.error) || 'Не удалось удалить заявку');
+                return;
+            }
+            if (typeof window.handleTaskDelete === 'function') {
+                window.handleTaskDelete({ id: taskId });
+            }
+        })
+        .catch(function() {
+            alert('Ошибка сети');
+        });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const archiveBtn = document.getElementById('tasks-archive-toggle');
+    const grid = document.getElementById('tasksGrid');
+    if (grid) tasksGridDefaultHtml = grid.innerHTML;
+    if (archiveBtn) {
+        archiveBtn.addEventListener('click', toggleArchiveView);
+    }
+
+    {% if archive_page %}
+    archiveMode = true;
+    if (archiveBtn) {
+        archiveBtn.classList.add('is-active');
+        const label = archiveBtn.querySelector('.tasks-archive-btn-label');
+        if (label) label.textContent = 'К активным';
+    }
+    const archiveTitle = document.getElementById('tasks-header-title');
+    const archiveSubtitle = document.getElementById('tasks-header-subtitle');
+    if (archiveTitle) archiveTitle.textContent = 'Архив завершенных';
+    if (archiveSubtitle) archiveSubtitle.textContent = 'Завершённые и проваленные заявки';
+    renderArchiveTasks({{ archive_tasks | tojson }});
+    {% endif %}
+
+    const openTaskParam = new URLSearchParams(window.location.search).get('open');
+    if (openTaskParam && typeof openTaskDetail === 'function') {
+        openTaskDetail(Number(openTaskParam));
+        const cleanUrl = window.location.pathname + (archiveMode ? '' : '');
+        window.history.replaceState({}, '', cleanUrl);
+    }
+
+});
+
+</script>
+
+{% endblock %}

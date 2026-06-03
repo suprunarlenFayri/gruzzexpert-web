@@ -1,0 +1,11 @@
+﻿.env
+creator.key
+firebase_credentials.json
+google-services.json
+GoogleService-Info.plist
+__pycache__/
+*.pyc
+.venv/
+venv/
+instance/
+*.db

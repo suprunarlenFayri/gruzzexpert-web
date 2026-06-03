@@ -1,0 +1,653 @@
+{# templates/macros/ui.html #}
+{# Система UI компонентов для всего приложения #}
+
+{# ===== КНОПКИ ===== #}
+{% macro button(text, url=None, type='primary', size='md', icon=None, onclick=None, disabled=false, extra_classes='') %}
+    {% set btn_classes = {
+        'primary': 'btn-primary',
+        'secondary': 'btn-secondary',
+        'danger': 'btn-danger',
+        'success': 'btn-success'
+    } %}
+    {% set size_classes = {
+        'sm': 'btn-sm',
+        'md': 'btn',
+        'lg': 'btn-lg'
+    } %}
+    
+    {% if url %}
+        <a href="{{ url }}" 
+           class="{{ btn_classes[type] }} {{ size_classes[size] }} {{ extra_classes }}"
+           {% if disabled %}style="opacity:0.5; pointer-events:none;"{% endif %}>
+            {% if icon %}<i data-lucide="{{ icon }}"></i>{% endif %}
+            {{ text }}
+        </a>
+    {% else %}
+        <button type="button" 
+                class="{{ btn_classes[type] }} {{ size_classes[size] }} {{ extra_classes }}"
+                onclick="{{ onclick }}"
+                {% if disabled %}disabled{% endif %}>
+            {% if icon %}<i data-lucide="{{ icon }}"></i>{% endif %}
+            {{ text }}
+        </button>
+    {% endif %}
+{% endmacro %}
+
+{# ===== КАРТОЧКА ===== #}
+{% macro card(title=None, class='', header_actions=None) %}
+    <div class="card {{ class }}">
+        {% if title or header_actions %}
+        <div class="card-header">
+            {% if title %}<h3>{{ title }}</h3>{% endif %}
+            {% if header_actions %}<div class="card-actions">{{ header_actions }}</div>{% endif %}
+        </div>
+        {% endif %}
+        <div class="card-body">
+            {{ caller() }}
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== ФОРМЫ ===== #}
+{% macro form_input(label, name, type='text', placeholder='', value='', required=false, icon=None, hint=None, autocomplete='off') %}
+    <div class="form-group">
+        <label class="form-label">
+            {% if icon %}<i data-lucide="{{ icon }}"></i>{% endif %}
+            {{ label }}
+            {% if required %}<span class="required">*</span>{% endif %}
+        </label>
+        <input type="{{ type }}" 
+               name="{{ name }}" 
+               class="form-input"
+               placeholder="{{ placeholder }}"
+               value="{{ value }}"
+               autocomplete="{{ autocomplete }}"
+               {% if required %}required{% endif %}>
+        {% if hint %}
+            <div class="form-hint">{{ hint }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro form_textarea(label, name, placeholder='', value='', rows=4, required=false, icon=None) %}
+    <div class="form-group">
+        <label class="form-label">
+            {% if icon %}<i data-lucide="{{ icon }}"></i>{% endif %}
+            {{ label }}
+        </label>
+        <textarea name="{{ name }}" 
+                  class="form-textarea"
+                  rows="{{ rows }}"
+                  placeholder="{{ placeholder }}"
+                  {% if required %}required{% endif %}>{{ value }}</textarea>
+    </div>
+{% endmacro %}
+
+{% macro form_select(label, name, options, value='', required=false, icon=None, placeholder='Выберите...') %}
+    <div class="form-group">
+        <label class="form-label">
+            {% if icon %}<i data-lucide="{{ icon }}"></i>{% endif %}
+            {{ label }}
+        </label>
+        {% set ns = namespace(selected_label=placeholder, found=false) %}
+        {% for option in options %}
+            {% if value|string == option.id|string %}
+                {% set ns.selected_label = option.name %}
+                {% set ns.found = true %}
+            {% endif %}
+        {% endfor %}
+        <div class="b2b-select-wrapper">
+            <div class="b2b-select-input" tabindex="0" role="button" aria-haspopup="listbox">
+                <span class="b2b-selected-value">{{ ns.selected_label if ns.found else placeholder }}</span>
+                <span class="b2b-select-arrow">↓</span>
+            </div>
+            <div class="b2b-select-dropdown" role="listbox">
+                {% if not required %}
+                <div class="b2b-select-option{% if not ns.found %} active{% endif %}" data-value="">{{ placeholder }}</div>
+                {% endif %}
+                {% for option in options %}
+                <div class="b2b-select-option{% if value|string == option.id|string %} active{% endif %}" data-value="{{ option.id }}">{{ option.name }}</div>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="{{ name }}" value="{{ value if ns.found else '' }}" {% if required %}required{% endif %}>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro b2b_select(options, value='', name='', setting_key=None, select_id=None, extra_class='', min_width='') %}
+    {% set ns = namespace(selected_label='—', found=false) %}
+    {% for opt in options %}
+        {% set opt_val = opt.value if opt.value is defined else opt[0] %}
+        {% set opt_label = opt.label if opt.label is defined else opt[1] %}
+        {% if value|string == opt_val|string %}
+            {% set ns.selected_label = opt_label %}
+            {% set ns.found = true %}
+        {% endif %}
+    {% endfor %}
+    <div class="b2b-select-wrapper {{ extra_class }}"{% if min_width %} style="min-width: {{ min_width }};"{% endif %}>
+        <div class="b2b-select-input" tabindex="0" role="button" aria-haspopup="listbox"{% if select_id %} id="{{ select_id }}_trigger"{% endif %}>
+            <span class="b2b-selected-value">{{ ns.selected_label }}</span>
+            <span class="b2b-select-arrow">↓</span>
+        </div>
+        <div class="b2b-select-dropdown" role="listbox">
+            {% for opt in options %}
+            {% set opt_val = opt.value if opt.value is defined else opt[0] %}
+            {% set opt_label = opt.label if opt.label is defined else opt[1] %}
+            <div class="b2b-select-option{% if value|string == opt_val|string %} active{% endif %}" data-value="{{ opt_val }}">{{ opt_label }}</div>
+            {% endfor %}
+        </div>
+        <input type="hidden"
+               {% if name %}name="{{ name }}"{% endif %}
+               {% if select_id %}id="{{ select_id }}"{% endif %}
+               {% if setting_key %}data-setting-key="{{ setting_key }}"{% endif %}
+               value="{{ value if ns.found else (options[0].value if options[0].value is defined else options[0][0]) }}">
+    </div>
+{% endmacro %}
+
+{% macro form_price(label, name, value='', required=false) %}
+    <div class="form-group">
+        <label class="form-label">
+            <span class="price-label-currency" aria-hidden="true">₽</span>
+            {{ label }}
+            {% if required %}<span class="required">*</span>{% endif %}
+        </label>
+        <div class="price-input-group">
+            <input type="text" 
+                   id="price_input" 
+                   name="{{ name }}_display" 
+                   class="form-input" 
+                   placeholder="Например: 450/2 или 1000"
+                   value="{{ value }}">
+            <button type="button" class="calc-btn">
+                <i data-lucide="calculator"></i>
+            </button>
+        </div>
+        <div class="form-hint">
+            Форматы:<br>
+            • 1000 — фиксированная сумма<br>
+            • 450/2 — 450 руб/час, минимум 2 часа
+        </div>
+        <div id="price_result" class="price-result" style="display: none;">
+            Итоговая сумма: <strong id="total_price">0</strong> ₽
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== КОМПАКТНАЯ СТРОКА ЗАЯВКИ (список) ===== #}
+{% macro task_slots_badge(task) %}
+{% set assigned = task.get_assigned_workers()|length %}
+{% set required = task.required_workers or 1 %}
+{% if assigned < required %}
+<span class="task-slots-badge">Занято мест: {{ assigned }} из {{ required }}</span>
+{% else %}
+<span class="task-slots-badge is-full">Занято мест: {{ assigned }} из {{ required }}</span>
+{% endif %}
+{% endmacro %}
+
+{% macro assigned_worker_avatar(user, size=28) %}
+<div class="assigned-worker-avatar profile-trigger" data-profile-user-id="{{ user.id }}" data-profile-context="worker" role="button" tabindex="0" title="{{ user.name }}" style="width: {{ size }}px; height: {{ size }}px;">
+    {% if user.avatar %}
+        <img src="{{ user|avatar_url }}" alt="{{ user.name }}">
+    {% else %}
+        <span class="assigned-worker-initials">{{ user.name[0]|upper }}</span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro task_list_assigned_avatars(task) %}
+{% set workers = task.get_assigned_workers() %}
+{% if workers %}
+<div class="task-assigned-avatars" onclick="event.stopPropagation();">
+    {% for worker in workers[:3] %}
+        {{ assigned_worker_avatar(worker, 28) }}
+    {% endfor %}
+    {% if workers|length > 3 %}
+    <span class="assigned-more">+{{ workers|length - 3 }}</span>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# ===== МЕТА-СТРОКИ КАРТОЧКИ ЗАДАЧИ (дата + адрес) ===== #}
+{% macro task_card_meta(task) %}
+<div class="task-card-meta-line">
+    {% if task.execution_date %}
+    <div class="task-card-meta-row">
+        <i data-lucide="calendar"></i>
+        <span>Дата выполнения: <strong>{{ task.execution_date | format_local_date }}{% if task.execution_time %} {{ task.execution_time.strftime('%H:%M') }}{% endif %}</strong></span>
+    </div>
+    {% endif %}
+    <div class="task-card-meta-row">
+        <i data-lucide="map-pin" class="task-card-meta-pin"></i>
+        <span>Адрес: <strong>{{ task.address or 'Уточняется у диспетчера' }}</strong></span>
+    </div>
+</div>
+{% endmacro %}
+
+{# ===== ЛИНЕЙНАЯ КНОПКА ТРЕКИНГА НА КАРТОЧКЕ ===== #}
+{% macro task_card_tracking(task) %}
+{% set tracking = worker_task_tracking(task) %}
+{% if tracking and not tracking.is_finished and tracking.worker_status != 'completed' %}
+<div class="task-card-tracking" onclick="event.stopPropagation();">
+    {% if tracking.worker_status == 'assigned' %}
+    <button type="button"
+            class="task-card-tracking-btn"
+            data-task-id="{{ task.id }}"
+            data-worker-action="route"
+            {% if not tracking.can_en_route %}disabled{% endif %}>В пути</button>
+    {% elif tracking.worker_status == 'en_route' %}
+    <button type="button"
+            class="task-card-tracking-btn"
+            data-task-id="{{ task.id }}"
+            data-worker-action="arrive">На месте</button>
+    {% elif tracking.worker_status == 'on_site' %}
+    <button type="button"
+            class="task-card-tracking-btn"
+            data-task-id="{{ task.id }}"
+            data-worker-action="finish">Закончил</button>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# ===== КАРТОЧКА ЗАДАЧИ ===== #}
+{% macro task_card(task, pinned=false, show_pin=true, current_user=None) %}
+    <div class="task-card" data-task-id="{{ task.id }}" onclick="openTaskDetail({{ task.id }})">
+        <div class="task-card-header">
+            {% if current_user and (current_user.role in ['creator', 'director', 'senior_dispatcher', 'dispatcher', 'manager', 'brigadir'] or current_user.id == task.created_by_id) and task.task_number %}
+                <div class="task-number">№ {{ task.task_number }}</div>
+            {% endif %}
+            <div class="task-title">{{ task.title }}</div>
+            <div class="task-price">{{ "{:,.0f}".format(task.price)|replace(',', ' ') }} ₽</div>
+        </div>
+
+        {{ task_card_meta(task) }}
+        
+        <div class="task-details">
+            <span class="task-workers">
+                <i data-lucide="users"></i>
+                {{ task.get_assigned_workers()|length }}/{{ task.required_workers }}
+            </span>
+            {% if task.city %}
+                <span class="task-city">
+                    <i data-lucide="map-pin"></i>
+                    {{ task.city.name }}
+                </span>
+            {% endif %}
+        </div>
+
+        {{ task_card_tracking(task) }}
+        
+        <div class="task-footer">
+            {{ status_badge(task.status) }}
+            
+            {% if show_pin %}
+            <div class="task-actions">
+                <button class="task-pin-btn" onclick="event.stopPropagation(); togglePin({{ task.id }})" title="Закрепить">
+                    <i data-lucide="pin"></i>
+                </button>
+                <button class="task-more-btn" onclick="event.stopPropagation(); showTaskMenu(event, {{ task.id }})" title="Ещё">
+                    <i data-lucide="more-horizontal"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== БЕЙДЖ СТАТУСА ===== #}
+{% macro status_badge(status) %}
+    {% set status_config = {
+        'recruiting': {'class': 'status-recruiting', 'text': 'Набор'},
+        'in_progress': {'class': 'status-in-progress', 'text': 'В работе'},
+        'on_site': {'class': 'status-in-progress', 'text': 'На проверке'},
+        'waiting_confirm': {'class': 'status-in-progress', 'text': 'Ожидает подтверждения'},
+        'in-progress': {'class': 'status-in-progress', 'text': 'В работе'},
+        'done': {'class': 'status-done', 'text': 'Завершена'},
+        'failed': {'class': 'status-cancelled', 'text': 'Провалена'},
+        'cancelled': {'class': 'status-cancelled', 'text': 'Отменена'},
+        'new': {'class': 'status-new', 'text': 'Новая'},
+        'pending': {'class': 'status-pending', 'text': 'Ожидает'},
+        'approved': {'class': 'status-approved', 'text': 'Одобрено'},
+        'rejected': {'class': 'status-rejected', 'text': 'Отклонено'},
+        'open': {'class': 'status-recruiting', 'text': 'Открыта'}
+    } %}
+    {% set config = status_config.get(status, {'class': 'status-default', 'text': status}) %}
+    <span class="status-badge {{ config.class }}">{{ config.text }}</span>
+{% endmacro %}
+
+{# ===== ПУСТОЕ СОСТОЯНИЕ ===== #}
+{% macro empty_state(title, description, icon='inbox', button_text=None, button_url=None, button_icon=None) %}
+    <div class="empty-state">
+        <i data-lucide="{{ icon }}"></i>
+        <h3>{{ title }}</h3>
+        <p>{{ description }}</p>
+        {% if button_text and button_url %}
+            <a href="{{ button_url }}" class="btn-primary" style="margin-top: var(--space-lg);">
+                {% if button_icon %}<i data-lucide="{{ button_icon }}"></i>{% endif %}
+                {{ button_text }}
+            </a>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# ===== АВАТАР ===== #}
+{% macro avatar(user, size=48, profile_clickable=false, profile_context='messenger') %}
+    {% if profile_clickable and user %}
+    <span class="avatar profile-trigger" data-profile-user-id="{{ user.id }}" data-profile-context="{{ profile_context }}" role="button" tabindex="0" title="Профиль" style="width: {{ size }}px; height: {{ size }}px;">
+        {% if user.avatar %}
+            <img src="{{ user|avatar_url }}" alt="{{ user.name }}">
+        {% else %}
+            <span class="avatar-initials">{{ user.name[0]|upper }}</span>
+        {% endif %}
+    </span>
+    {% else %}
+    <div class="avatar" style="width: {{ size }}px; height: {{ size }}px;">
+        {% if user.avatar %}
+            <img src="{{ user|avatar_url }}" alt="{{ user.name }}">
+        {% else %}
+            <span class="avatar-initials">{{ user.name[0]|upper }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro profile_name(user, class='', profile_context='messenger') %}
+    {% if user %}
+    <span class="profile-trigger {{ class }}" data-profile-user-id="{{ user.id }}" data-profile-context="{{ profile_context }}" role="button" tabindex="0" title="Профиль">{{ user.name }}</span>
+    {% endif %}
+{% endmacro %}
+
+{# ===== МИНИ-КАРТОЧКА ЗАДАЧИ ДЛЯ САЙДБАРА ===== #}
+{% macro task_mini_card(task) %}
+    <div class="task-mini-card" onclick="openTaskDetail({{ task.id }})">
+        <div class="task-mini-card-header">
+            <div class="task-mini-title">{{ task.title }}</div>
+            <div class="task-mini-price">{{ task.price }} ₽</div>
+        </div>
+        <div class="task-mini-client">
+            <i data-lucide="building"></i>
+            <span>{{ task.client.name if task.client else 'Без клиента' }}</span>
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== ГРУППА В САЙДБАРЕ ===== #}
+{% macro sidebar_group(title, icon, items, item_macro='task_mini_card') %}
+    <div class="sidebar-group">
+        <div class="sidebar-group-header">
+            <i data-lucide="{{ icon }}"></i>
+            <span>{{ title }}</span>
+        </div>
+        <div class="sidebar-group-items">
+            {% for item in items %}
+                {% if item_macro == 'task_mini_card' %}
+                    {{ task_mini_card(item) }}
+                {% endif %}
+            {% else %}
+                <div class="sidebar-empty">Нет {{ title|lower }}</div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== ФИЛЬТРЫ ===== #}
+{% macro filters_bar(cities, current_filters) %}
+    <div class="filters-container">
+        <button onclick="toggleFilters()" class="filters-toggle-btn">
+            <span><i data-lucide="sliders"></i> Фильтры</span>
+            <span id="filter-arrow">▼</span>
+        </button>
+        <div id="filter-panel" class="filter-panel" style="display: none;">
+            <form method="get" action="{{ url_for('tasks.tasks_list') }}">
+                <select name="city_id" class="filter-select">
+                    <option value="">Все города</option>
+                    {% for city in cities %}
+                    <option value="{{ city.id }}" {% if current_filters.get('city_id')|int == city.id %}selected{% endif %}>
+                        {{ city.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="client" placeholder="Клиент" value="{{ current_filters.get('client', '') }}" class="filter-input">
+                <div class="filter-price">
+                    <input type="number" name="min_price" placeholder="от" value="{{ current_filters.get('min_price', '') }}" class="filter-input">
+                    <input type="number" name="max_price" placeholder="до" value="{{ current_filters.get('max_price', '') }}" class="filter-input">
+                </div>
+                <div class="filter-date">
+                    <input type="date" name="date_from" value="{{ current_filters.get('date_from', '') }}" class="filter-input">
+                    <input type="date" name="date_to" value="{{ current_filters.get('date_to', '') }}" class="filter-input">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">Применить</button>
+                    <a href="{{ url_for('tasks.tasks_list') }}" class="btn-secondary">Сбросить</a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== ЗАГОЛОВОК СТРАНИЦЫ ===== #}
+{% macro page_header(title, actions=None) %}
+    <div class="page-header">
+        <h2>{{ title }}</h2>
+        {% if actions %}
+        <div class="page-actions">{{ actions }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{# ===== СООБЩЕНИЕ В ЧАТЕ ===== #}
+{% macro message(message, current_user) %}
+    <div class="message {% if message.sender_id == current_user.id %}my{% else %}other{% endif %}" id="msg-{{ message.id }}" data-message-id="{{ message.id }}">
+        {% if message.sender_id != current_user.id %}
+        <div class="message-avatar profile-trigger" data-profile-user-id="{{ message.sender_id }}" data-profile-context="messenger" role="button" tabindex="0" title="Профиль">
+            {% if message.sender.avatar %}
+                <img src="{{ url_for('uploaded_file', filename=message.sender.avatar) }}" alt="{{ message.sender.name }}">
+            {% else %}
+                {{ message.sender.name[0]|upper }}
+            {% endif %}
+        </div>
+        {% endif %}
+        <div class="message-bubble">
+            {% if message.sender_id != current_user.id %}
+            <div class="message-sender profile-trigger" data-profile-user-id="{{ message.sender_id }}" data-profile-context="messenger" role="button" tabindex="0" title="Профиль">{{ message.sender.name }}</div>
+            {% endif %}
+            {% if message.plaintext_text|trim %}
+            <div class="message-text">{{ message.plaintext_text }}</div>
+            {% endif %}
+            {% if message.attachments %}
+            <div class="attachments">
+                {% for att in message.attachments %}
+                <div class="attachment">
+                    {% set fp = att.file_path | default('') %}
+                    {% set ext = (fp | string).rsplit('.', 1)[-1].lower() if '.' in (fp | string) else '' %}
+                    {% if att.file_type == 'image' %}
+                        {# Используем thumbnail_path для отображения, file_path для Lightbox #}
+                        {% set thumb = att.thumbnail_path or att.file_path %}
+                        <img src="{{ url_for('uploaded_file', filename=thumb | normalize_upload) }}" 
+                             class="attachment-image"
+                             onclick="openModal('{{ url_for('uploaded_file', filename=(att.optimized_path or att.file_path) | normalize_upload) }}')">
+                    {% elif att.file_type == 'video' or ext in ['mp4', 'webm', 'mov'] %}
+                        {% set video_url = url_for('uploaded_file', filename=(att.file_path or '') | normalize_upload) %}
+                        <div class="chat-video-preview message-video" data-video-url="{{ video_url }}" onclick="playChatVideo(this.dataset.videoUrl)">
+                            <video class="message-video-player" src="{{ video_url }}" preload="metadata" muted playsinline></video>
+                            <div class="video-play-overlay">
+                                <i data-lucide="play"></i>
+                            </div>
+                            <div class="video-meta-info">
+                                <span class="video-name">{{ att.filename }}</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('chats.download_attachment', attachment_id=att.id) }}" class="attachment-file">
+                            <i data-lucide="file-text"></i>
+                            <span>{{ att.filename }}</span>
+                        </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="message-time">
+                {{ message.created_at | format_local_time }}
+                {% if message.sender_id == current_user.id %}
+                    <i data-lucide="check"></i>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{# ===== ЭЛЕМЕНТ ЧАТА ДЛЯ СПИСКА ===== #}
+{% macro chat_item(chat, current_user, active=false) %}
+    {% set participants = chat.get_participants() %}
+    {% set other = participants|selectattr('id', 'ne', current_user.id)|first if participants else None %}
+    <a href="javascript:void(0)"
+       onclick="goToChat({{ chat.id }})" 
+       class="chat-item {% if active %}active{% endif %}{% if chat.is_pinned %} is-pinned{% endif %}"
+       data-chat-id="{{ chat.id }}"
+       data-chat-type="{{ chat.type }}"
+       data-chat-pinned="{{ '1' if chat.is_pinned else '0' }}">
+        <div class="chat-avatar">
+            {% if chat.type == 'task' %}
+                <div class="chat-avatar-placeholder chat-avatar-placeholder--task">
+                    <i data-lucide="clipboard"></i>
+                </div>
+            {% elif chat.type == 'group' %}
+                <div class="chat-avatar-placeholder">
+                    <i data-lucide="users"></i>
+                </div>
+            {% elif other and other.avatar %}
+                <img src="{{ other|avatar_url }}"
+                     alt="{{ other.name }}"
+                     loading="lazy">
+            {% else %}
+                <div class="user-avatar-placeholder">
+                    {{ other.name[0]|upper if other and other.name else '👤' }}
+                </div>
+            {% endif %}
+        </div>
+        <div class="chat-info">
+            <div class="chat-name">
+                {% if chat.type == 'task' %}
+                    Заявка: {{ chat.task.title if chat.task else 'Заявка' }}
+                {% elif chat.type == 'group' %}
+{{ chat.name or ('Группа #' ~ chat.id|string) }}
+                {% else %}
+                    {{ other.name if other else 'Чат #' + chat.id|string }}
+                {% endif %}
+                {% if chat.is_pinned %}
+                <span class="chat-pin-badge" title="Закреплён"><i data-lucide="pin"></i></span>
+                {% endif %}
+            </div>
+            <div class="chat-preview">
+                {% set last_msg = chat.last_message %}
+                {% if last_msg %}
+                    {{ last_msg.sender.name }}: {{ last_msg.plaintext_text[:40] if last_msg.plaintext_text else 'Вложение' }}
+                {% else %}
+                    Нет сообщений
+                {% endif %}
+            </div>
+        </div>
+        <div class="chat-item-meta">
+            <span class="chat-item-time">
+                {% if chat.last_message %}
+                    {{ chat.last_message.created_at | format_local_time }}
+                {% endif %}
+            </span>
+            {% if chat.unread_count and chat.unread_count > 0 %}
+                <span class="chat-unread-badge">{{ chat.unread_count if chat.unread_count < 100 else '99+' }}</span>
+            {% endif %}
+        </div>
+    </a>
+{% endmacro %}
+
+{# ===== ШАПКА СПИСКА ЧАТОВ С ПОИСКОМ ===== #}
+{% macro chats_list_header(subtitle='Личные, группы и чаты по заявкам') %}
+<div class="chats-list-header">
+    <button id="mobile-burger-btn" class="burger-header-btn chats-list-burger" type="button">
+        <i data-lucide="menu"></i>
+    </button>
+    <div class="chats-list-header-main">
+        <h3>Чаты</h3>
+        {% if subtitle %}
+        <p>{{ subtitle }}</p>
+        {% endif %}
+    </div>
+    <button id="search-chats-btn" class="chat-header-action-btn" type="button" title="Поиск чатов" aria-label="Поиск чатов">
+        <span data-gruzz-icon="search" style="display: flex;"></span>
+    </button>
+    <div class="chat-search-expandable" id="chatSearchExpandable">
+        <input type="text"
+               id="chat-list-search"
+               class="chat-list-search-input"
+               placeholder="Поиск по чатам..."
+               aria-label="Поиск по чатам"
+               autocomplete="off">
+    </div>
+</div>
+{% endmacro %}
+
+{# ===== ГРУППИРОВАННЫЙ СПИСОК ЧАТОВ ===== #}
+{% macro chat_list_grouped(private_chats, group_chats, task_chats, current_user, active_chat_id=none) %}
+<div class="chat-groups-wrapper">
+    <div class="chat-group-section" data-chat-category="private">
+        <div class="section-header">
+            <i data-lucide="user"></i>
+            <span>Личные</span>
+        </div>
+        <div class="chat-group-items">
+            {% for chat in private_chats %}
+                {{ chat_item(chat, current_user, active_chat_id is not none and chat.id == active_chat_id) }}
+            {% else %}
+                <div class="empty-sidebar-state">Нет личных диалогов</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="chat-group-section" data-chat-category="group">
+        <div class="section-header">
+            <i data-lucide="users"></i>
+            <span>Группы</span>
+        </div>
+        <div class="chat-group-items">
+            {% for chat in group_chats %}
+                {{ chat_item(chat, current_user, active_chat_id is not none and chat.id == active_chat_id) }}
+            {% else %}
+                <div class="empty-sidebar-state">Нет групповых чатов</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="chat-group-section" data-chat-category="task">
+        <div class="section-header">
+            <i data-lucide="file-text"></i>
+            <span>Чаты по заявкам</span>
+        </div>
+        <div class="chat-group-items">
+            {% for chat in task_chats %}
+                {{ chat_item(chat, current_user, active_chat_id is not none and chat.id == active_chat_id) }}
+            {% else %}
+                <div class="empty-sidebar-state">Нет чатов по заявкам</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# ===== FAB: новый чат + создание группы ===== #}
+{% macro chat_fab(active_chat=none) %}
+{% if not active_chat %}
+<div class="chat-fab-container"
+     data-new-chat-url="{{ url_for('chats.search_users') }}"
+     data-group-chat-url="{{ url_for('chats.search_users') }}">
+    <button class="chat-fab-action" id="btnCreateGroup" type="button" title="Создать группу" onclick="openCreateGroupModal()">
+        <i data-lucide="users"></i>
+    </button>
+    <button class="chat-fab-main" type="button" title="Новый чат" onclick="openNewChatModal()">
+        <i data-lucide="edit-2"></i>
+    </button>
+</div>
+{% endif %}
+{% endmacro %}

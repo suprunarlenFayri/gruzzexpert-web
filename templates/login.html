@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+
+{% block main_content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header text-center mb-4">
+            <h2 class="fw-bold">{% if show_2fa %}Подтверждение входа{% elif show_sms %}Код из SMS{% elif creator_mode %}Вход создателя{% else %}Вход в систему{% endif %}</h2>
+            <p class="text-muted small">{% if show_2fa %}Новое устройство — введите коды подтверждения{% elif show_sms %}Введите 4 цифры, отправленные на ваш телефон{% elif creator_mode %}Email и 6-значный код из Google Authenticator / Яндекс.Ключ{% else %}Добро пожаловать в ГруззЭксперт{% endif %}</p>
+        </div>
+
+        {% if show_sms and sms_pending %}
+        <form method="post" action="{{ url_for('auth.login') }}" class="auth-form" id="loginSmsForm">
+            <input type="hidden" name="step" value="sms">
+            <input type="hidden" name="sms_session" value="{{ sms_pending.sms_session }}">
+            <input type="hidden" name="phone" value="{{ sms_pending.phone }}">
+            <div class="mb-4">
+                <label class="form-label text-muted small ms-2">Код из SMS</label>
+                <input type="text" name="sms_code" id="smsCodeInput" class="form-control custom-input sms-code-input" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="0000" autocomplete="one-time-code" required>
+            </div>
+            <button type="submit" class="btn btn-glass w-100 py-3">
+                <span>Подтвердить</span>
+            </button>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('auth.login') }}" class="link-fade small">Вернуться к входу</a>
+            </div>
+        </form>
+        {% elif show_2fa %}
+        <form method="post" action="{{ url_for('auth.verify_login_2fa') }}" class="auth-form" id="login2faForm">
+            <input type="hidden" name="step" value="2fa">
+            {% if mock_codes %}
+            <div class="dev-codes-hint">
+                <strong>Режим разработки:</strong> SMS-код <code>{{ mock_codes.sms }}</code>, Email-код <code>{{ mock_codes.email }}</code>
+            </div>
+            {% endif %}
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Код из SMS</label>
+                <input type="text" name="sms_code" class="form-control custom-input" inputmode="numeric" maxlength="6" placeholder="000000" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted small ms-2">Код из Email</label>
+                <input type="text" name="email_code" class="form-control custom-input" inputmode="numeric" maxlength="6" placeholder="000000" required>
+            </div>
+            <button type="submit" class="btn btn-glass w-100 py-3">
+                <span>Подтвердить вход</span>
+            </button>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('auth.login') }}" class="link-fade small">Вернуться к входу</a>
+            </div>
+        </form>
+        {% elif creator_mode %}
+        <form method="post" action="{{ url_for('auth.login', mode='creator') }}" class="auth-form" id="creatorLoginForm">
+            <input type="hidden" name="login_mode" value="creator">
+            <input type="hidden" name="device_hash" id="deviceHashInput" value="">
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Email создателя</label>
+                <input type="email" name="email" id="creatorEmailInput" class="form-control custom-input" placeholder="creator@company.ru" required autocomplete="username">
+            </div>
+            <div class="mb-3" id="creatorTotpGroup">
+                <label class="form-label text-muted small ms-2">Код аутентификатора</label>
+                <input type="text" name="totp_code" id="creatorTotpInput" class="form-control custom-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
+                <small class="text-muted" style="font-size: 10px; margin-left: 8px;">6 цифр из Google Authenticator или Яндекс.Ключ</small>
+            </div>
+            <div class="mb-4" id="creatorBackupGroup" hidden>
+                <label class="form-label text-muted small ms-2">Резервный код</label>
+                <input type="text" name="backup_code" id="creatorBackupInput" class="form-control custom-input" placeholder="GRZ-XXXX-XXXX" autocomplete="off" disabled>
+                <small class="text-muted" style="font-size: 10px; margin-left: 8px;">Одноразовый код, если нет доступа к телефону</small>
+            </div>
+            <button type="submit" class="btn btn-glass w-100 py-3">
+                <span>Войти как создатель</span>
+            </button>
+            <div class="text-center mt-3">
+                <button type="button" class="link-fade small" id="creatorBackupToggle" style="background:none;border:none;cursor:pointer;padding:0;">Использовать резервный код</button>
+            </div>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('auth.login') }}" class="link-fade small">Обычный вход по телефону</a>
+            </div>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('auth.login') }}" class="auth-form" id="loginForm">
+            <input type="hidden" name="device_hash" id="deviceHashInput" value="">
+            <div class="mb-3">
+                <label class="form-label text-muted small ms-2">Телефон</label>
+                <input type="tel" name="phone" class="form-control custom-input" placeholder="+7 XXX XXX XX XX" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted small ms-2">Пароль</label>
+                <input type="password" name="password" class="form-control custom-input" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-glass w-100 py-3">
+                <span>Войти в аккаунт</span>
+            </button>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('auth.register') }}" class="link-fade small">Создать аккаунт</a>
+                <span class="text-muted small"> · </span>
+                <a href="{{ url_for('auth.login', mode='creator') }}" class="link-fade small">Вход создателя</a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top right, #1a1a1a, #0d0d0d);
+        transition: background 0.4s ease;
+    }
+
+    body.light .auth-container {
+        background: radial-gradient(circle at top right, #e0e0e0, #f5f5f5);
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 40px;
+        background: var(--card-bg) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        position: relative;
+        transition: background 0.4s ease;
+    }
+
+    body.light .auth-card {
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .auth-header h2 {
+        color: var(--text-primary) !important;
+        letter-spacing: -0.5px;
+    }
+
+    .auth-header p {
+        color: var(--text-secondary) !important;
+    }
+
+    .custom-input {
+        background: var(--input-bg) !important;
+        border: 1px solid rgba(163, 112, 247, 0.2) !important;
+        border-radius: 12px !important;
+        padding: 12px 18px !important;
+        width: 100%;
+        transition: all 0.3s ease;
+        color: var(--text-primary) !important;
+    }
+
+    .custom-input:focus {
+        background: rgba(163, 112, 247, 0.05) !important;
+        border-color: rgba(163, 112, 247, 0.5) !important;
+        box-shadow: 0 0 15px rgba(163, 112, 247, 0.1) !important;
+        outline: none;
+    }
+
+    .btn-glass {
+        background: rgba(163, 112, 247, 0.1) !important;
+        border: 1px solid rgba(163, 112, 247, 0.3) !important;
+        color: #b88fff !important;
+        backdrop-filter: blur(5px);
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        padding: 14px 20px;
+        transition: all 0.3s ease;
+        width: 100%;
+        cursor: pointer;
+        margin-top: 20px !important;
+    }
+
+    body.light .btn-glass {
+        background: rgba(163, 112, 247, 0.08) !important;
+        color: #7b43d3 !important;
+    }
+
+    .btn-glass:hover {
+        background: rgba(163, 112, 247, 0.2) !important;
+        border-color: rgba(163, 112, 247, 0.6) !important;
+        box-shadow: 0 0 20px rgba(163, 112, 247, 0.15);
+        color: #fff !important;
+        transform: translateY(-2px);
+    }
+
+    .link-fade {
+        color: var(--text-secondary) !important;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .link-fade:hover {
+        color: #a370f7;
+    }
+
+    .form-label {
+        color: var(--text-secondary) !important;
+    }
+
+    .auth-form .text-center {
+        margin-top: 20px !important;
+    }
+
+    .dev-codes-hint {
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(163, 112, 247, 0.08);
+        border: 1px solid rgba(163, 112, 247, 0.2);
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .dev-codes-hint code {
+        color: var(--accent);
+        font-weight: 600;
+    }
+</style>
+
+<script>
+(function() {
+    function simpleDeviceHash() {
+        var raw = [
+            navigator.userAgent || '',
+            navigator.language || '',
+            screen.width + 'x' + screen.height,
+            Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+        ].join('|');
+        var hash = 0;
+        for (var i = 0; i < raw.length; i++) {
+            hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+            hash |= 0;
+        }
+        return 'dev_' + Math.abs(hash).toString(16);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var hashInput = document.getElementById('deviceHashInput');
+        if (hashInput) hashInput.value = simpleDeviceHash();
+
+        var creatorForm = document.getElementById('creatorLoginForm');
+        if (!creatorForm) return;
+
+        var totpGroup = document.getElementById('creatorTotpGroup');
+        var totpInput = document.getElementById('creatorTotpInput');
+        var backupGroup = document.getElementById('creatorBackupGroup');
+        var backupInput = document.getElementById('creatorBackupInput');
+        var backupToggle = document.getElementById('creatorBackupToggle');
+        var useBackup = false;
+
+        function setTotpMode() {
+            useBackup = false;
+            if (totpGroup) totpGroup.hidden = false;
+            if (backupGroup) backupGroup.hidden = true;
+            if (totpInput) { totpInput.disabled = false; totpInput.required = true; }
+            if (backupInput) { backupInput.disabled = true; backupInput.required = false; backupInput.value = ''; }
+            if (backupToggle) backupToggle.textContent = 'Использовать резервный код';
+        }
+
+        function setBackupMode() {
+            useBackup = true;
+            if (totpGroup) totpGroup.hidden = true;
+            if (backupGroup) backupGroup.hidden = false;
+            if (totpInput) { totpInput.disabled = true; totpInput.required = false; totpInput.value = ''; }
+            if (backupInput) { backupInput.disabled = false; backupInput.required = true; }
+            if (backupToggle) backupToggle.textContent = 'Ввести код из приложения';
+        }
+
+        if (backupToggle) {
+            backupToggle.addEventListener('click', function() {
+                if (useBackup) setTotpMode();
+                else setBackupMode();
+            });
+        }
+
+        creatorForm.addEventListener('submit', function(e) {
+            if (useBackup && backupInput && !backupInput.value.trim()) {
+                e.preventDefault();
+                alert('Введите резервный код формата GRZ-XXXX-XXXX');
+            }
+        });
+    });
+})();
+</script>
+<script src="{{ url_for('static', filename='js/sms-code-input.js') }}"></script>
+{% endblock %}

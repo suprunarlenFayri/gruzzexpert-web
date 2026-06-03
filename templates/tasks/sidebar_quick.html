@@ -1,0 +1,40 @@
+<div class="quick-access">
+    <a href="{{ url_for('tasks.my_tasks') }}" class="sidebar-group-header">
+        <div class="header-title">
+            <i data-lucide="briefcase"></i>
+            <span>Мои заявки</span>
+        </div>
+        <i data-lucide="chevron-right" style="width: 14px; height: 14px; opacity: 0.5;"></i>
+    </a>
+    <div class="quick-list">
+        {% for task in my_in_progress %}
+        <a href="{{ url_for('tasks.task_detail', task_id=task.id) }}" class="quick-item">
+            <div class="quick-avatar">📋</div>
+            <div class="quick-info">
+                <div class="quick-title">{{ task.title }}</div>
+                <div class="quick-price">{{ task.price }} ₽</div>
+            </div>
+        </a>
+        {% else %}
+        <div class="quick-empty">Нет заявок в работе</div>
+        {% endfor %}
+    </div>
+    
+    <div class="quick-header" style="margin-top: 20px;">
+        <i data-lucide="pin"></i>
+        <span>Закреплённые</span>
+    </div>
+    <div class="quick-list">
+        {% for task in pinned_tasks %}
+        <a href="{{ url_for('tasks.task_detail', task_id=task.id) }}" class="quick-item">
+            <div class="quick-avatar">📌</div>
+            <div class="quick-info">
+                <div class="quick-title">{{ task.title }}</div>
+                <div class="quick-price">{{ task.price }} ₽</div>
+            </div>
+        </a>
+        {% else %}
+        <div class="quick-empty">Нет закреплённых</div>
+        {% endfor %}
+    </div>
+</div>

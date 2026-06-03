@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import avatar, button, status_badge, empty_state %}
+
+{% block title %}Модерация анкет | GruzzExpert{% endblock %}
+
+{% block extra %}
+<style>
+/* ===== СТИЛИ ДЛЯ МОДЕРАЦИИ АНКЕТ ===== */
+
+.verifications-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.verifications-header {
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.verifications-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-xs);
+}
+
+.verifications-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Кнопка обновления */
+.btn-refresh {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.btn-refresh:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+}
+
+.btn-refresh:active .refresh-svg {
+    animation: spin 0.5s ease-in-out;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.refresh-svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+}
+
+.btn-refresh:hover .refresh-svg {
+    color: var(--accent);
+}
+
+.photo-unavailable {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 24px 8px;
+    text-align: center;
+}
+
+/* Основной контент */
+.verifications-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-xl);
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: var(--space-xl);
+}
+
+.verification-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all var(--transition-normal);
+    animation: fadeInUp var(--transition-normal) backwards;
+}
+
+.verification-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--accent);
+}
+
+.card-header {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.user-info-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.request-id {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.status-badge-pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.card-body {
+    padding: var(--space-xl);
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.info-label {
+    width: 100px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.info-value {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.info-value.experience {
+    background: var(--bg-tertiary);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-xs);
+}
+
+.photos-section {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.photos-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.photos-grid {
+    display: flex;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.photo-item {
+    flex: 1;
+    min-width: 150px;
+    text-align: center;
+}
+
+.photo-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.photo-preview {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: var(--transition-fast);
+    cursor: pointer;
+}
+
+.photo-preview:hover {
+    border-color: var(--accent);
+    transform: scale(1.02);
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.card-actions {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.card-actions .moderation-approve-btn,
+.card-actions .btn-success.moderation-approve-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background: #1e4620 !important;
+    border: none !important;
+    border-radius: 8px;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+    box-shadow: none;
+}
+
+.card-actions .moderation-approve-btn:hover,
+.card-actions .btn-success.moderation-approve-btn:hover {
+    background: #2e6932 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+.card-actions .moderation-reject-btn,
+.card-actions .btn-danger.moderation-reject-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background: #631c1c !important;
+    border: none !important;
+    border-radius: 8px;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+    box-shadow: none;
+}
+
+.card-actions .moderation-reject-btn:hover,
+.card-actions .btn-danger.moderation-reject-btn:hover {
+    background: #8a2b2b !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+.card-actions .moderation-approve-btn:active,
+.card-actions .moderation-reject-btn:active {
+    transform: translateY(0);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.modal img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--accent);
+}
+
+@media (max-width: 768px) {
+    .verifications-header {
+        padding: var(--space-sm) var(--space-lg);
+    }
+    
+    .verifications-content {
+        padding: var(--space-md);
+    }
+    
+    .cards-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-lg);
+    }
+    
+    .card-header {
+        padding: var(--space-md) var(--space-lg);
+    }
+    
+    .card-body {
+        padding: var(--space-lg);
+    }
+    
+    .info-label {
+        width: 100%;
+        margin-bottom: var(--space-xs);
+    }
+    
+    .info-row {
+        flex-direction: column;
+    }
+    
+    .photos-grid {
+        flex-direction: column;
+    }
+    
+    .card-actions {
+        padding: var(--space-md) var(--space-lg);
+        flex-direction: column;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.verification-card:nth-child(1) { animation-delay: 0.05s; }
+.verification-card:nth-child(2) { animation-delay: 0.10s; }
+.verification-card:nth-child(3) { animation-delay: 0.15s; }
+.verification-card:nth-child(4) { animation-delay: 0.20s; }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="verifications-container">
+    <div class="verifications-header">
+        <div>
+            <h3>Модерация анкет исполнителей</h3>
+            <p>Проверка документов и подтверждение квалификации</p>
+        </div>
+        <button class="btn-refresh" onclick="location.reload()" title="Обновить">
+            <svg class="refresh-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+    
+    <div class="verifications-content b2b-scroll">
+        {% if requests %}
+        <div class="cards-grid">
+            {% for req in requests %}
+            <div class="verification-card" data-req-id="{{ req.id }}">
+                <div class="card-header">
+                    <div class="user-info-header">
+                        <div class="user-name">{{ req.full_name|decrypt_field }}</div>
+                        <div class="request-id">#{{ req.id }}</div>
+                    </div>
+                    <div class="status-badge-pending">
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+                        Ожидает проверки
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="info-row">
+                        <div class="info-label">Город</div>
+                        <div class="info-value">{{ req.city.name if req.city else 'Не указан' }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Дата рождения</div>
+                        <div class="info-value">{{ req.birth_date | format_local_date }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Телефон</div>
+                        <div class="info-value">{{ req.phone|decrypt_field }}</div>
+                    </div>
+                    {% if req.experience %}
+                    <div class="info-row">
+                        <div class="info-label">Опыт работы</div>
+                        <div class="info-value experience">{{ req.experience|decrypt_field }}</div>
+                    </div>
+                    {% endif %}
+                    {% if req.comment %}
+                    <div class="info-row">
+                        <div class="info-label">Комментарий</div>
+                        <div class="info-value experience">{{ req.comment|decrypt_field }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="photos-section">
+                        <div class="photos-title">
+                            <i data-lucide="camera"></i>
+                            Фотографии документов
+                        </div>
+                        <div class="photos-grid">
+                            <div class="photo-item">
+                                <div class="photo-label">Фото паспорта</div>
+                                <div class="photo-preview js-sensitive-preview" data-req-id="{{ req.id }}"{% if req.media_passport_url %} onclick="openImageLightbox('{{ req.media_passport_url }}', ['{{ req.media_passport_url }}','{{ req.media_selfie_url }}'])"{% endif %}>
+                                    {% if req.media_passport_url %}
+                                    <img class="js-sensitive-img" src="{{ req.media_passport_url }}" alt="Паспорт" data-req-id="{{ req.id }}">
+                                    {% else %}
+                                    <span class="photo-unavailable">Недоступно</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="photo-item">
+                                <div class="photo-label">Селфи</div>
+                                <div class="photo-preview js-sensitive-preview" data-req-id="{{ req.id }}"{% if req.media_selfie_url %} onclick="openImageLightbox('{{ req.media_selfie_url }}', ['{{ req.media_passport_url }}','{{ req.media_selfie_url }}'])"{% endif %}>
+                                    {% if req.media_selfie_url %}
+                                    <img class="js-sensitive-img" src="{{ req.media_selfie_url }}" alt="Селфи" data-req-id="{{ req.id }}">
+                                    {% else %}
+                                    <span class="photo-unavailable">Недоступно</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-actions">
+                    <button type="button" class="btn-success moderation-approve-btn" data-req-id="{{ req.id }}">Одобрить</button>
+                    <button type="button" class="btn-danger moderation-reject-btn" data-req-id="{{ req.id }}">Отклонить</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <i data-lucide="clipboard-check" style="width: 64px; height: 64px; opacity: 0.5;"></i>
+                <h3>Нет заявок на модерацию</h3>
+                <p>Все анкеты проверены и обработаны</p>
+                <button class="btn-refresh" onclick="location.reload()" style="margin-top: 20px;">
+                    <svg class="refresh-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function purgeSensitiveMediaFromDom() {
+    document.querySelectorAll('.js-sensitive-img').forEach(function (img) {
+        img.removeAttribute('src');
+        img.src = '';
+    });
+    if (typeof window.closeImageLightbox === 'function') {
+        window.closeImageLightbox();
+    }
+}
+
+function clearVerificationMediaSession() {
+    purgeSensitiveMediaFromDom();
+    if (window._verificationMediaClearSent) return;
+    window._verificationMediaClearSent = true;
+    fetch('/admin/verification/clear-media', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        keepalive: true,
+    }).catch(function () {});
+}
+
+window.addEventListener('pagehide', clearVerificationMediaSession);
+window.addEventListener('beforeunload', clearVerificationMediaSession);
+document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+        clearVerificationMediaSession();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.moderation-approve-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const reqId = btn.dataset.reqId;
+            if (!confirm('Одобрить анкету исполнителя?')) return;
+            window.location.href = '/admin/verification/approve/' + reqId;
+        });
+    });
+
+    document.querySelectorAll('.moderation-reject-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const reqId = btn.dataset.reqId;
+            if (!confirm('Отклонить анкету исполнителя?')) return;
+            window.location.href = '/admin/verification/reject/' + reqId;
+        });
+    });
+
+    if (typeof refreshIcons === 'function') refreshIcons();
+});
+</script>
+{% endblock %}

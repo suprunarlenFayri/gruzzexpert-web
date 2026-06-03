@@ -1,0 +1,7 @@
+{% from "macros/ui.html" import chat_item %}
+
+<div class="chats-list">
+    {% for chat in chats %}
+        {{ chat_item(chat, current_user, chat.id == current_chat_id) }}
+    {% endfor %}
+</div>
