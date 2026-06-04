@@ -6,7 +6,7 @@ import os
 
 from models import City, User, Workspace, WorkspaceMember, db
 from utils.invite_utils import DEFAULT_WORKSPACE_ID, generate_invite_key
-from utils.workspace_utils import DEFAULT_WORKSPACE_ADMIN_LIMIT
+from utils.workspace_utils import DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def _ensure_flagship_workspace(creator: User) -> Workspace | None:
 
     ws = Workspace(
         name=FLAGSHIP_NAME,
-        admin_limit=50,
+        admin_limit=None,
         invite_key=generate_invite_key(),
         created_by_id=creator.id,
     )
@@ -118,8 +118,11 @@ def ensure_platform_creator_setup() -> bool:
             logger.warning('Bootstrap: не удалось создать workspace')
             return False
 
-        if (workspace.admin_limit or 0) < DEFAULT_WORKSPACE_ADMIN_LIMIT:
-            workspace.admin_limit = DEFAULT_WORKSPACE_ADMIN_LIMIT
+        if int(workspace.id) == DEFAULT_WORKSPACE_ID:
+            if workspace.admin_limit is not None:
+                workspace.admin_limit = None
+        elif workspace.admin_limit is None:
+            workspace.admin_limit = DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
 
         changed = False
         if user.role != 'creator':

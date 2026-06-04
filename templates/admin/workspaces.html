@@ -1146,7 +1146,7 @@ input[type="date"].ws-hidden-native-date {
 
                     Лимит админ-состава
 
-                    <input type="number" name="admin_limit" min="1" max="100" value="50" required title="До 100 для директора; создатель платформы может указать больше">
+                    <input type="number" name="admin_limit" min="1" max="100" value="5" required title="Лимит админ-состава для клиентского пространства">
 
                 </label>
 
@@ -1190,7 +1190,7 @@ input[type="date"].ws-hidden-native-date {
 
             <div class="workspace-meta">
 
-                <div>Лимит админов: {{ ws.admin_limit or 50 }}</div>
+                <div>Лимит админов: {% if ws.id == 1 %}без лимита{% else %}{{ ws.admin_limit or 5 }}{% endif %}</div>
 
                 <div>
 
@@ -1224,7 +1224,7 @@ input[type="date"].ws-hidden-native-date {
 
                 <span class="workspace-stat">Клиентов: <span data-stat-clients>{{ stats.clients or 0 }}</span></span>
 
-                <span class="workspace-stat">Админов: {{ stats.admins or 0 }} / {{ ws.admin_limit or 50 }}</span>
+                <span class="workspace-stat">Админов: {{ stats.admins or 0 }} / {% if ws.id == 1 %}∞{% else %}{{ ws.admin_limit or 5 }}{% endif %}</span>
 
             </div>
 
@@ -1276,7 +1276,7 @@ input[type="date"].ws-hidden-native-date {
 window.WORKSPACE_ADMIN_DEFAULT_PERMS = {{ workspace_admin_perms|tojson }};
 </script>
 
-<script src="{{ url_for('static', filename='js/admin-workspaces.js') }}?v=1.3"></script>
+<script src="{{ url_for('static', filename='js/admin-workspaces.js') }}?v=1.4"></script>
 
 {% if can_create_workspace %}
 <script>

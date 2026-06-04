@@ -3,10 +3,12 @@
 from models import Client, User, UserSession, Workspace, db
 from utils.datetime_utils import format_local_datetime, utc_now
 from utils.user_login_sessions import list_user_sessions, sessions_for_api
+from utils.invite_utils import DEFAULT_WORKSPACE_ID
 from utils.workspace_utils import (
     ADMIN_STAFF_ROLES,
-    DEFAULT_WORKSPACE_ADMIN_LIMIT,
+    DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT,
     count_admin_staff,
+    is_flagship_workspace,
 )
 
 WORKER_ROLES = ('worker', 'brigadir')
@@ -85,12 +87,17 @@ def count_workspace_workers(workspace_id):
 
 
 def workspace_card_stats(workspace_id, admin_limit=None):
-    limit = admin_limit or DEFAULT_WORKSPACE_ADMIN_LIMIT
+    unlimited = is_flagship_workspace(int(workspace_id))
+    if unlimited:
+        limit = None
+    else:
+        limit = admin_limit if admin_limit is not None else DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
     return {
         'workers': count_workspace_workers(workspace_id),
         'clients': Client.query.filter_by(workspace_id=workspace_id).count(),
         'admins': count_admin_staff(workspace_id),
         'admin_limit': limit,
+        'admin_limit_unlimited': unlimited,
     }
 
 
@@ -171,7 +178,13 @@ def serialize_workspace_detail(workspace, avatar_url_fn):
     return {
         'id': workspace.id,
         'name': name,
-        'admin_limit': workspace.admin_limit or DEFAULT_WORKSPACE_ADMIN_LIMIT,
+        'admin_limit': (
+            None
+            if is_flagship_workspace(workspace)
+            else (workspace.admin_limit if workspace.admin_limit is not None else DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT)
+        ),
+        'admin_limit_unlimited': is_flagship_workspace(workspace),
+        'is_flagship_workspace': int(workspace.id) == DEFAULT_WORKSPACE_ID,
         'expires_at': expires_iso,
         'expires_at_display': expires_display,
         'invite_key': workspace.invite_key,

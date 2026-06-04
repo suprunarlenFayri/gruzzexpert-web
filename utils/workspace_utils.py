@@ -1,13 +1,18 @@
 """Утилиты изоляции данных по рабочим пространствам."""
 
+from utils.invite_utils import DEFAULT_WORKSPACE_ID
+
 ADMIN_STAFF_ROLES = ('creator', 'director', 'senior_dispatcher', 'dispatcher')
 CLIENT_ADMIN_ROLES = ('creator', 'director', 'senior_dispatcher', 'dispatcher')
 USER_MANAGEMENT_ROLES = ('creator', 'director', 'senior_dispatcher')
 
-DEFAULT_WORKSPACE_ADMIN_LIMIT = 50
+# Лимит по умолчанию для новых клиентских пространств (не флагман)
+DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT = 5
 MAX_WORKSPACE_ADMIN_LIMIT = 100
 MIN_WORKSPACE_ADMIN_LIMIT = 1
-PLATFORM_ADMIN_SOFT_LIMIT = 9999
+
+# Обратная совместимость импортов
+DEFAULT_WORKSPACE_ADMIN_LIMIT = DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
 
 
 def is_platform_admin(user):
@@ -16,6 +21,14 @@ def is_platform_admin(user):
     if (getattr(user, 'platform_role', None) or '') == 'super_admin':
         return True
     return (user.role or '') == 'creator'
+
+
+def is_flagship_workspace(workspace_or_id):
+    """Флагманское пространство GruzzExpert (id=1) — без лимита админов."""
+    if workspace_or_id is None:
+        return False
+    wid = workspace_or_id if isinstance(workspace_or_id, int) else int(workspace_or_id.id)
+    return wid == DEFAULT_WORKSPACE_ID
 
 
 def _session_workspace_id():
@@ -93,46 +106,58 @@ def count_admin_staff(workspace_id, exclude_user_id=None):
     return q.count()
 
 
-def effective_admin_limit(workspace, acting_user=None):
-    """Лимит админ-состава; для создателя платформы — без жёсткого потолка."""
+def effective_admin_limit(workspace):
+    """
+    Лимит из БД для клиентского пространства.
+    Флагман (id=1): None — без ограничений.
+    """
     from models import Workspace
 
-    if acting_user and is_platform_admin(acting_user):
-        return PLATFORM_ADMIN_SOFT_LIMIT
     if workspace is None:
-        ws = None
-    elif isinstance(workspace, Workspace):
-        ws = workspace
-    else:
-        ws = Workspace.query.get(int(workspace))
-    if not ws:
-        return DEFAULT_WORKSPACE_ADMIN_LIMIT
-    return max(int(ws.admin_limit or DEFAULT_WORKSPACE_ADMIN_LIMIT), MIN_WORKSPACE_ADMIN_LIMIT)
+        return DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+    if isinstance(workspace, int):
+        if is_flagship_workspace(workspace):
+            return None
+        workspace = Workspace.query.get(workspace)
+    elif is_flagship_workspace(workspace):
+        return None
+    if not workspace:
+        return DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+    if workspace.admin_limit is None:
+        return DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+    return max(int(workspace.admin_limit), MIN_WORKSPACE_ADMIN_LIMIT)
 
 
 def admin_limit_reached(workspace_id, exclude_user_id=None, acting_user=None):
-    from models import Workspace
+    del acting_user  # лимит не зависит от того, кто назначает роль
 
-    if acting_user and is_platform_admin(acting_user):
+    if is_flagship_workspace(int(workspace_id)):
         return False
+
+    from models import Workspace
 
     ws = Workspace.query.get(workspace_id)
     if not ws:
         return False
-    limit = effective_admin_limit(ws, acting_user)
+    limit = effective_admin_limit(ws)
     return count_admin_staff(workspace_id, exclude_user_id=exclude_user_id) >= limit
 
 
 def would_exceed_admin_limit(workspace_id, target_user, new_role, acting_user=None):
+    del acting_user
+
     if new_role not in ADMIN_STAFF_ROLES:
         return False
     if target_user.role in ADMIN_STAFF_ROLES:
         return False
-    return admin_limit_reached(workspace_id, exclude_user_id=target_user.id, acting_user=acting_user)
+    if is_flagship_workspace(int(workspace_id)):
+        return False
+    return admin_limit_reached(workspace_id, exclude_user_id=target_user.id)
 
 
 def normalize_admin_limit_value(raw, acting_user=None):
-    """Парсинг лимита из формы с учётом роли."""
+    """Парсинг лимита из формы. Создатель может задать любое разумное значение для клиентов."""
+    del acting_user
     try:
         value = int(raw)
     except (TypeError, ValueError):
@@ -141,13 +166,23 @@ def normalize_admin_limit_value(raw, acting_user=None):
     if value < MIN_WORKSPACE_ADMIN_LIMIT:
         return None, f'Лимит администраторов должен быть не менее {MIN_WORKSPACE_ADMIN_LIMIT}'
 
-    if acting_user and is_platform_admin(acting_user):
-        return value, None
-
     if value > MAX_WORKSPACE_ADMIN_LIMIT:
         return None, f'Лимит администраторов не может превышать {MAX_WORKSPACE_ADMIN_LIMIT}'
 
     return value, None
+
+
+def admin_limit_display(workspace):
+    """Строка для UI: «без лимита» или число."""
+    if is_flagship_workspace(workspace):
+        return None
+    from models import Workspace
+
+    if isinstance(workspace, int):
+        workspace = Workspace.query.get(workspace)
+    if not workspace:
+        return DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+    return workspace.admin_limit if workspace.admin_limit is not None else DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
 
 
 def require_workspace(user):

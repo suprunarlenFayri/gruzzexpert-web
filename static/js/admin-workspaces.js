@@ -105,8 +105,13 @@
         const readonly = !!perms.is_readonly_panel;
         const canExtend = !!perms.can_extend_subscription && !readonly;
         const canTerminate = !!perms.can_terminate_sessions && !readonly;
+        const canEditAdminLimit = !!perms.can_edit_admin_limit;
+        const isFlagship = !!perms.is_flagship_workspace || !!ws.is_flagship_workspace || !!ws.admin_limit_unlimited;
 
         const stats = ws.stats || {};
+        const adminLimitLabel = isFlagship
+            ? '∞'
+            : String(stats.admin_limit ?? ws.admin_limit ?? 5);
         const adminsHtml = (ws.admins || []).map(function (admin) {
             const avatar = admin.avatar_url
                 ? `<img src="${escapeHtml(admin.avatar_url)}" alt="">`
@@ -163,12 +168,40 @@
                 </form>
             </div>`;
 
+        const adminLimitBlock = isFlagship
+            ? `
+            <div class="ws-panel-section">
+                <h4>Лимит админ-состава</h4>
+                <p class="ws-readonly-expires">Флагманское пространство: <strong>без лимита</strong></p>
+            </div>`
+            : canEditAdminLimit
+            ? `
+            <div class="ws-panel-section">
+                <h4>Лимит админ-состава</h4>
+                <form id="workspace-admin-limit-form" class="ws-extend-form">
+                    <label class="ws-extend-label">
+                        Максимум админов / диспетчеров
+                        <input type="number" name="admin_limit" min="1" max="100" value="${escapeHtml(String(ws.admin_limit ?? stats.admin_limit ?? 5))}" required class="ws-admin-limit-input">
+                    </label>
+                    <div class="ws-extend-actions">
+                        <button type="submit" class="ws-btn-primary">Сохранить лимит</button>
+                    </div>
+                    <p class="ws-hint">Текущий состав: ${stats.admins ?? 0}. После сохранения в БД лимит применится сразу.</p>
+                </form>
+            </div>`
+            : `
+            <div class="ws-panel-section">
+                <h4>Лимит админ-состава</h4>
+                <p class="ws-readonly-expires">Лимит: <strong>${adminLimitLabel}</strong></p>
+            </div>`;
+
         body.innerHTML = `
             ${subscriptionBlock}
+            ${adminLimitBlock}
             <div class="ws-panel-stats">
                 <div class="ws-panel-stat">Исполнителей: <strong>${stats.workers ?? 0}</strong></div>
                 <div class="ws-panel-stat">Клиентов: <strong>${stats.clients ?? 0}</strong></div>
-                <div class="ws-panel-stat">Админов: <strong>${stats.admins ?? 0}</strong> / ${stats.admin_limit ?? 50}</div>
+                <div class="ws-panel-stat">Админов: <strong>${stats.admins ?? 0}</strong> / ${adminLimitLabel}</div>
             </div>
             <div class="ws-panel-section ws-panel-section-admins">
                 <h4>Админский состав</h4>
@@ -179,6 +212,8 @@
         if (!readonly) {
             const extendForm = document.getElementById('workspace-extend-form');
             if (extendForm) extendForm.addEventListener('submit', onExtendSubmit);
+            const limitForm = document.getElementById('workspace-admin-limit-form');
+            if (limitForm) limitForm.addEventListener('submit', onAdminLimitSubmit);
             const clearBtn = document.getElementById('ws-clear-subscription-date');
             if (clearBtn) {
                 clearBtn.addEventListener('click', function () {
@@ -218,6 +253,39 @@
             body.innerHTML = `<div class="ws-panel-error">${escapeHtml(err.message || 'Ошибка сети')}</div>`;
         } finally {
             loading = false;
+        }
+    }
+
+    async function onAdminLimitSubmit(e) {
+        e.preventDefault();
+        if (!activeWorkspaceId) return;
+        const input = document.querySelector('#workspace-admin-limit-form input[name="admin_limit"]');
+        const adminLimit = input ? parseInt(input.value, 10) : NaN;
+        if (!adminLimit || adminLimit < 1) {
+            alert('Укажите лимит не менее 1');
+            return;
+        }
+        try {
+            const res = await fetch(`/api/admin/workspaces/${activeWorkspaceId}/admin-limit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ admin_limit: adminLimit }),
+            });
+            const data = await res.json();
+            if (!res.ok || data.status !== 'success') {
+                throw new Error((data && data.error) || 'Не удалось сохранить лимит');
+            }
+            renderPanel(data.workspace);
+            updateCardFromWorkspace(activeWorkspaceId, data.workspace);
+            if (typeof window.showToast === 'function') {
+                window.showToast('Лимит админ-состава обновлён', 'success');
+            }
+        } catch (err) {
+            alert(err.message || 'Ошибка сохранения');
         }
     }
 

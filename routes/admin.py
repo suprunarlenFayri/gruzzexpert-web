@@ -457,6 +457,37 @@ def api_workspace_detail(ws_id):
     return jsonify({'status': 'success', 'workspace': payload})
 
 
+@admin_bp.route('/api/admin/workspaces/<int:ws_id>/admin-limit', methods=['POST'])
+@login_required
+@role_required(['creator'])
+def api_workspace_admin_limit(ws_id):
+    from utils.invite_utils import DEFAULT_WORKSPACE_ID
+    from utils.workspace_rbac import can_edit_workspace_admin_limit
+    from utils.workspace_utils import normalize_admin_limit_value
+
+    workspace = Workspace.query.get_or_404(ws_id)
+    if int(workspace.id) == DEFAULT_WORKSPACE_ID:
+        return jsonify({
+            'status': 'error',
+            'error': 'У флагманского пространства лимит отключён',
+        }), 400
+    if not can_edit_workspace_admin_limit(current_user, workspace):
+        return jsonify({'status': 'error', 'error': 'Нет прав на изменение лимита'}), 403
+
+    data = request.get_json(silent=True) or {}
+    raw = data.get('admin_limit') if 'admin_limit' in data else request.form.get('admin_limit')
+    admin_limit, limit_err = normalize_admin_limit_value(raw, current_user)
+    if limit_err:
+        return jsonify({'status': 'error', 'error': limit_err}), 400
+
+    workspace.admin_limit = admin_limit
+    db.session.commit()
+    return jsonify({
+        'status': 'success',
+        'workspace': serialize_workspace_detail(workspace, _admin_avatar_url),
+    })
+
+
 @admin_bp.route('/api/admin/workspaces/<int:ws_id>/extend', methods=['POST'])
 @login_required
 @role_required(['creator', 'director'])
@@ -538,9 +569,9 @@ def create_workspace():
         abort(403)
 
     name = normalize_workspace_name(request.form.get('name'))
-    from utils.workspace_utils import DEFAULT_WORKSPACE_ADMIN_LIMIT, normalize_admin_limit_value
+    from utils.workspace_utils import DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT, normalize_admin_limit_value
 
-    admin_limit_raw = request.form.get('admin_limit', str(DEFAULT_WORKSPACE_ADMIN_LIMIT))
+    admin_limit_raw = request.form.get('admin_limit', str(DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT))
     expires_at = _parse_expires_at(request.form.get('expires_at'))
 
     if not name:

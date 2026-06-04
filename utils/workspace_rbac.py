@@ -84,6 +84,13 @@ def can_terminate_workspace_admin_sessions(user, workspace):
     return workspaces_access_level(user) in (1, 2)
 
 
+def can_edit_workspace_admin_limit(user, workspace):
+    """Создатель платформы может вручную менять admin_limit клиентских пространств."""
+    if not is_platform_creator(user) or workspace is None:
+        return False
+    return int(workspace.id) != DEFAULT_WORKSPACE_ID
+
+
 def workspace_panel_permissions(user, workspace=None):
     level = workspaces_access_level(user)
     readonly = level == 3
@@ -95,6 +102,12 @@ def workspace_panel_permissions(user, workspace=None):
         ),
         'can_terminate_sessions': (
             not readonly and workspace is not None and can_terminate_workspace_admin_sessions(user, workspace)
+        ),
+        'can_edit_admin_limit': (
+            workspace is not None and can_edit_workspace_admin_limit(user, workspace)
+        ),
+        'is_flagship_workspace': (
+            workspace is not None and int(workspace.id) == DEFAULT_WORKSPACE_ID
         ),
         'is_readonly_panel': readonly,
     }
