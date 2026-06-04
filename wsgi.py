@@ -14,7 +14,6 @@ with application.app_context():
         print('====== BOOTSTRAP EXECUTED SUCCESSFULLY ======', flush=True)
     except Exception as e:
         print(f'====== BOOTSTRAP FAILED WITH ERROR: {e} ======', flush=True)
-        raise
 
 if __name__ == '__main__':
     from socketio_instance import socketio

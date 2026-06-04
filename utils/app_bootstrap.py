@@ -156,5 +156,4 @@ def run_startup_bootstrap() -> None:
     except Exception as exc:
         print(f'[bootstrap] run_startup_bootstrap failed: {exc}', flush=True)
         logger.warning('run_startup_bootstrap failed: %s', exc, exc_info=True)
-        raise
     print('[bootstrap] run_startup_bootstrap: done', flush=True)
