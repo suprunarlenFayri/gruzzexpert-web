@@ -111,6 +111,11 @@ def create_app():
         if not current_user.is_authenticated:
             return None
 
+        from utils.workspace_utils import is_platform_admin, resolve_workspace_id
+
+        if is_platform_admin(current_user):
+            resolve_workspace_id(current_user)
+
         session_token = session.get('session_token')
         device_type = session.get('device_type', 'desktop')
         db_token = (
@@ -333,13 +338,19 @@ def create_app():
     app.register_blueprint(security_bp)
     app.register_blueprint(social_bp)
 
-    from services.chat_cleanup import start_chat_cleanup_worker, purge_expired_chats_once
-    from services.task_timer_service import start_task_timer_worker
-    purge_expired_chats_once(app)
-    start_chat_cleanup_worker(app)
-    start_task_timer_worker(app)
+    if not os.getenv('SKIP_BACKGROUND_WORKERS'):
+        from services.chat_cleanup import start_chat_cleanup_worker, purge_expired_chats_once
+        from services.task_timer_service import start_task_timer_worker
+        purge_expired_chats_once(app)
+        start_chat_cleanup_worker(app)
+        start_task_timer_worker(app)
 
     with app.app_context():
+        try:
+            from utils.app_bootstrap import run_startup_bootstrap
+            run_startup_bootstrap()
+        except Exception:
+            pass
         try:
             from utils.push_notifications import init_firebase
             init_firebase()

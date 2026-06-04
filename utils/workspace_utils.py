@@ -5,10 +5,67 @@ CLIENT_ADMIN_ROLES = ('creator', 'director', 'senior_dispatcher', 'dispatcher')
 USER_MANAGEMENT_ROLES = ('creator', 'director', 'senior_dispatcher')
 
 
-def get_workspace_id(user):
+def is_platform_admin(user):
+    if user is None or not getattr(user, 'is_authenticated', False):
+        return False
+    if (getattr(user, 'platform_role', None) or '') == 'super_admin':
+        return True
+    return (user.role or '') == 'creator'
+
+
+def _session_workspace_id():
+    try:
+        from flask import session
+        return session.get('workspace_id')
+    except RuntimeError:
+        return None
+
+
+def _set_session_workspace_id(ws_id):
+    if ws_id is None:
+        return
+    try:
+        from flask import session
+        session['workspace_id'] = int(ws_id)
+    except RuntimeError:
+        pass
+
+
+def resolve_workspace_id(user, *, persist=True):
+    """
+    workspace_id из User, иначе session, иначе первый Workspace для creator/super_admin.
+    """
     if user is None or not getattr(user, 'is_authenticated', False):
         return None
-    return getattr(user, 'workspace_id', None)
+
+    if user.workspace_id:
+        _set_session_workspace_id(user.workspace_id)
+        return int(user.workspace_id)
+
+    session_ws = _session_workspace_id()
+    if session_ws:
+        return int(session_ws)
+
+    if is_platform_admin(user):
+        from models import Workspace, db
+
+        ws = Workspace.query.order_by(Workspace.id.asc()).first()
+        if ws:
+            ws_id = int(ws.id)
+            _set_session_workspace_id(ws_id)
+            if persist and user.workspace_id != ws_id:
+                user.workspace_id = ws_id
+                try:
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+            return ws_id
+
+    return None
+
+
+def get_workspace_id(user):
+    return resolve_workspace_id(user)
 
 
 def scope_query(query, model, user):
@@ -50,7 +107,7 @@ def would_exceed_admin_limit(workspace_id, target_user, new_role):
 
 
 def require_workspace(user):
-    ws_id = get_workspace_id(user)
+    ws_id = resolve_workspace_id(user)
     if not ws_id:
         return None, 'Рабочее пространство не назначено'
     return ws_id, None
