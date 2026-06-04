@@ -168,7 +168,7 @@
             <div class="ws-panel-stats">
                 <div class="ws-panel-stat">Исполнителей: <strong>${stats.workers ?? 0}</strong></div>
                 <div class="ws-panel-stat">Клиентов: <strong>${stats.clients ?? 0}</strong></div>
-                <div class="ws-panel-stat">Админов: <strong>${stats.admins ?? 0}</strong> / ${stats.admin_limit ?? 5}</div>
+                <div class="ws-panel-stat">Админов: <strong>${stats.admins ?? 0}</strong> / ${stats.admin_limit ?? 50}</div>
             </div>
             <div class="ws-panel-section ws-panel-section-admins">
                 <h4>Админский состав</h4>

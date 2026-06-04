@@ -6,6 +6,7 @@ import os
 
 from models import City, User, Workspace, WorkspaceMember, db
 from utils.invite_utils import DEFAULT_WORKSPACE_ID, generate_invite_key
+from utils.workspace_utils import DEFAULT_WORKSPACE_ADMIN_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,9 @@ def ensure_platform_creator_setup() -> bool:
         if not workspace:
             logger.warning('Bootstrap: не удалось создать workspace')
             return False
+
+        if (workspace.admin_limit or 0) < DEFAULT_WORKSPACE_ADMIN_LIMIT:
+            workspace.admin_limit = DEFAULT_WORKSPACE_ADMIN_LIMIT
 
         changed = False
         if user.role != 'creator':

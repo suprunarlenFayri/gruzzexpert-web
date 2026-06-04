@@ -538,21 +538,18 @@ def create_workspace():
         abort(403)
 
     name = normalize_workspace_name(request.form.get('name'))
-    admin_limit_raw = request.form.get('admin_limit', '5')
+    from utils.workspace_utils import DEFAULT_WORKSPACE_ADMIN_LIMIT, normalize_admin_limit_value
+
+    admin_limit_raw = request.form.get('admin_limit', str(DEFAULT_WORKSPACE_ADMIN_LIMIT))
     expires_at = _parse_expires_at(request.form.get('expires_at'))
 
     if not name:
         flash('Укажите название рабочего пространства')
         return redirect(url_for('admin.manage_workspaces'))
 
-    try:
-        admin_limit = int(admin_limit_raw)
-    except (TypeError, ValueError):
-        flash('Лимит администраторов должен быть числом')
-        return redirect(url_for('admin.manage_workspaces'))
-
-    if admin_limit < 1:
-        flash('Лимит администраторов должен быть не менее 1')
+    admin_limit, limit_err = normalize_admin_limit_value(admin_limit_raw, current_user)
+    if limit_err:
+        flash(limit_err)
         return redirect(url_for('admin.manage_workspaces'))
 
     if Workspace.query.filter_by(name=name).first():
@@ -765,7 +762,9 @@ def assign_role(user_id):
         return redirect(url_for('admin.manage_users'))
 
     workspace_id = target_user.workspace_id or ws_id
-    if workspace_id and would_exceed_admin_limit(workspace_id, target_user, new_role):
+    if workspace_id and would_exceed_admin_limit(
+        workspace_id, target_user, new_role, acting_user=current_user
+    ):
         flash('Превышен лимит административного состава для этого рабочего пространства')
         return redirect(url_for('admin.manage_users'))
 

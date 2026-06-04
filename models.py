@@ -236,7 +236,7 @@ class Workspace(BaseModel):
     __tablename__ = 'workspaces'
     
     name = db.Column(db.String(100), nullable=False)
-    admin_limit = db.Column(db.Integer, default=5)
+    admin_limit = db.Column(db.Integer, default=50)
     expires_at = db.Column(db.DateTime, nullable=True)
     invite_key = db.Column(db.String(23), unique=True, nullable=True)
     share_token = db.Column(db.String(50), unique=True, nullable=True)
