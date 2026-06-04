@@ -1,5 +1,6 @@
 /**
- * Проверка занятости тега через GET /api/users/check-tag
+ * Проверка занятости тега через GET /api/users/check-tag.
+ * Не блокирует отправку формы, кроме случая когда тег уже подтверждённо занят.
  */
 (function (global) {
     const DEFAULT_MESSAGE = 'Этот тег уже занят, придумайте другой';
@@ -13,12 +14,12 @@
     }
 
     function initTagInput(input, form, options) {
-        if (!input) return;
+        if (!input || !form) return;
 
         const opts = options || {};
         const noticeId = opts.noticeId || 'tag-availability-notice';
         let notice = document.getElementById(noticeId);
-        if (!notice) {
+        if (!notice && input.parentNode) {
             notice = document.createElement('div');
             notice.id = noticeId;
             notice.className = 'tag-availability-notice';
@@ -27,78 +28,90 @@
             input.parentNode.appendChild(notice);
         }
 
-        let tagOk = !input.required;
-        let checking = false;
-
-        function setSubmitEnabled(enabled) {
-            const btn = form && (form.querySelector('[type="submit"]') || form.querySelector('button[type="submit"]'));
-            if (btn) btn.disabled = !enabled;
-        }
+        /** @type {'unknown'|'ok'|'bad'} */
+        let tagState = 'unknown';
 
         function setInvalid(message) {
             input.classList.add('tag-invalid');
-            notice.textContent = message || DEFAULT_MESSAGE;
-            notice.hidden = false;
-            tagOk = false;
-            setSubmitEnabled(false);
+            if (notice) {
+                notice.textContent = message || DEFAULT_MESSAGE;
+                notice.hidden = false;
+            }
+            tagState = 'bad';
         }
 
         function setValid() {
             input.classList.remove('tag-invalid');
-            notice.hidden = true;
-            notice.textContent = '';
-            tagOk = true;
-            if (!checking) setSubmitEnabled(true);
+            if (notice) {
+                notice.hidden = true;
+                notice.textContent = '';
+            }
+            tagState = 'ok';
         }
 
-        async function runCheck() {
+        function resetUnknown() {
+            if (tagState !== 'bad') {
+                input.classList.remove('tag-invalid');
+                if (notice) {
+                    notice.hidden = true;
+                    notice.textContent = '';
+                }
+            }
+            tagState = 'unknown';
+        }
+
+        async function checkTagNow() {
             const tag = (input.value || '').trim().replace(/^@+/, '');
             if (!tag) {
-                tagOk = !input.required;
-                input.classList.remove('tag-invalid');
-                notice.hidden = true;
-                setSubmitEnabled(tagOk);
-                return;
+                resetUnknown();
+                return true;
             }
 
-            checking = true;
-            setSubmitEnabled(false);
             try {
                 const params = new URLSearchParams({ tag });
                 if (opts.excludeUserId) params.set('exclude', String(opts.excludeUserId));
                 const res = await fetch(`/api/users/check-tag?${params.toString()}`, {
                     headers: { Accept: 'application/json' },
                 });
+                if (!res.ok) {
+                    return true;
+                }
                 const data = await res.json();
                 if (data.available) {
                     setValid();
-                } else {
-                    setInvalid(DEFAULT_MESSAGE);
+                    return true;
                 }
+                setInvalid(DEFAULT_MESSAGE);
+                return false;
             } catch (err) {
-                console.error('tag check failed', err);
-                setSubmitEnabled(true);
-            } finally {
-                checking = false;
+                console.warn('[TagAvailability] check failed, allow submit', err);
+                return true;
             }
         }
 
-        const debouncedCheck = debounce(runCheck, 350);
+        const debouncedCheck = debounce(checkTagNow, 350);
         input.addEventListener('input', debouncedCheck);
-        input.addEventListener('blur', runCheck);
+        input.addEventListener('blur', checkTagNow);
 
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                const tag = (input.value || '').trim();
-                if (tag && !tagOk) {
-                    e.preventDefault();
-                    setInvalid(DEFAULT_MESSAGE);
-                }
-            });
+        form.addEventListener('submit', function (e) {
+            const tag = (input.value || '').trim().replace(/^@+/, '');
+            if (!tag) {
+                return;
+            }
+            if (tagState === 'bad') {
+                e.preventDefault();
+                setInvalid(DEFAULT_MESSAGE);
+            }
+        });
+
+        const submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.removeAttribute('disabled');
         }
 
         if ((input.value || '').trim()) {
-            runCheck();
+            checkTagNow();
         }
     }
 

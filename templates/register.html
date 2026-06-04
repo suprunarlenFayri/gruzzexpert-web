@@ -18,7 +18,7 @@
             {% endif %}
         </div>
 
-        <form method="post" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm">
+        <form method="post" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm" data-register-form>
             <div class="mb-3">
                 <label class="form-label text-muted small ms-2">Имя</label>
                 <input type="text" name="name" class="form-control custom-input" placeholder="Ваше имя" required>
@@ -189,14 +189,8 @@
     }
 </style>
 
-<script src="{{ url_for('static', filename='js/tag-availability.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var form = document.getElementById('registerForm');
-    var tagInput = document.getElementById('registerTagInput');
-    if (form && tagInput && window.TagAvailability) {
-        TagAvailability.init(tagInput, form);
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='js/register-form.js') }}?v=1.0"></script>
+{% if not is_platform_bootstrap %}
+<script src="{{ url_for('static', filename='js/tag-availability.js') }}?v=3"></script>
+{% endif %}
 {% endblock %}
