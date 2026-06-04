@@ -3,10 +3,15 @@
  */
 const TaskUI = {
     initTomSelects: function() {
-        if (document.querySelector('.create-container, .edit-container')) {
+        if (!document.querySelector('.create-container, .edit-container')) {
+            return;
+        }
+        if (typeof window.TomSelect === 'undefined') {
+            console.warn('[TaskUI] TomSelect не загружен — селекты городов пропущены');
             return;
         }
 
+        try {
         // Функция рендера для селектов с избранными городами
         const favRenderConfig = {
             option: function(data, escape) {
@@ -56,10 +61,13 @@ const TaskUI = {
 
         // Инициализация обычных селектов (клиенты и т.д.)
         const clientSelect = document.getElementById('client_id');
-        if (clientSelect) {
+        if (clientSelect && !clientSelect.tomselect) {
             new window.TomSelect(clientSelect, {
                 sortField: { field: "text", direction: "asc" }
             });
+        }
+        } catch (err) {
+            console.warn('[TaskUI] initTomSelects error:', err);
         }
     },
 
@@ -271,14 +279,18 @@ const TaskUI = {
     },
 
     initListFilters: function() {
-        const filterForm = document.getElementById('tasks-filter-form');
-        if (!filterForm) return;
+        try {
+            const filterForm = document.getElementById('tasks-filter-form');
+            if (!filterForm) return;
 
-        this.initFilterCityCombobox();
-        this.initDatePickers();
+            this.initFilterCityCombobox();
+            this.initDatePickers();
 
-        if (typeof refreshIcons === 'function') {
-            refreshIcons();
+            if (typeof refreshIcons === 'function') {
+                refreshIcons();
+            }
+        } catch (err) {
+            console.warn('[TaskUI] initListFilters error:', err);
         }
     },
 
@@ -393,47 +405,53 @@ const TaskUI = {
     },
 
     init: function() {
-        if (document.querySelector('.create-container, .edit-container')) {
-            this.initTomSelects();
-            this.initDatePickers();
-            this.initDeadlineControls();
-        }
-
-        // Привязка событий для форм
-        const taskForm = document.querySelector('form');
-        if (taskForm && document.getElementById('price_input')) {
-            taskForm.addEventListener('submit', (e) => this.validateTaskForm(e));
-
-            const priceInput = document.getElementById('price_input');
-            const workerInput = document.getElementById('required_workers');
-            const clientSelect = document.getElementById('client_id');
-            const calcBtn = document.querySelector('.calc-btn');
-
-            if (priceInput) {
-                priceInput.addEventListener('input', () => this.calculatePrice());
-                priceInput.addEventListener('blur', () => this.calculatePrice());
-            }
-            if (workerInput) {
-                workerInput.addEventListener('input', () => this.calculatePrice());
-                workerInput.addEventListener('change', () => this.calculatePrice());
-            }
-            if (calcBtn) {
-                calcBtn.addEventListener('click', () => this.calculatePrice());
-            }
-            if (clientSelect) {
-                clientSelect.addEventListener('change', () => this.toggleClientInput());
+        try {
+            if (document.querySelector('.create-container, .edit-container')) {
+                this.initTomSelects();
+                this.initDatePickers();
+                this.initDeadlineControls();
             }
 
-            // Инициализация UI при загрузке
-            this.calculatePrice();
-            this.toggleClientInput();
+            const taskForm = document.querySelector('form');
+            if (taskForm && document.getElementById('price_input')) {
+                taskForm.addEventListener('submit', (e) => this.validateTaskForm(e));
+
+                const priceInput = document.getElementById('price_input');
+                const workerInput = document.getElementById('required_workers');
+                const clientSelect = document.getElementById('client_id');
+                const calcBtn = document.querySelector('.calc-btn');
+
+                if (priceInput) {
+                    priceInput.addEventListener('input', () => this.calculatePrice());
+                    priceInput.addEventListener('blur', () => this.calculatePrice());
+                }
+                if (workerInput) {
+                    workerInput.addEventListener('input', () => this.calculatePrice());
+                    workerInput.addEventListener('change', () => this.calculatePrice());
+                }
+                if (calcBtn) {
+                    calcBtn.addEventListener('click', () => this.calculatePrice());
+                }
+                if (clientSelect) {
+                    clientSelect.addEventListener('change', () => this.toggleClientInput());
+                }
+
+                this.calculatePrice();
+                this.toggleClientInput();
+            }
+        } catch (err) {
+            console.warn('[TaskUI] init error:', err);
         }
         console.log('Tasks Module Initialized');
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    TaskUI.init();
+    try {
+        TaskUI.init();
+    } catch (err) {
+        console.warn('[TaskUI] fatal init:', err);
+    }
 });
 
 // Делаем глобально доступным

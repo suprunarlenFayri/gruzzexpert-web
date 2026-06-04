@@ -17,7 +17,7 @@
 
     <!-- Шрифты -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     
     <script>
@@ -3105,7 +3105,8 @@
     <script src="{{ url_for('static', filename='js/image-lightbox.js') }}?v=1.0"></script>
     <script src="{{ url_for('static', filename='js/chats.js') }}?v=2.0"></script>
     <script src="{{ url_for('static', filename='js/chat-social.js') }}?v=1.2"></script>
-    <script src="{{ url_for('static', filename='js/tasks.js') }}?v=1.1"></script>
+    <script src="{{ url_for('static', filename='js/mobile-burger.js') }}?v=1.0"></script>
+    <script src="{{ url_for('static', filename='js/tasks.js') }}?v=1.2"></script>
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='js/profile-panel.js') }}?v=1.4"></script>
     {% endif %}
@@ -3209,38 +3210,6 @@
     </script>
     {% block extra %}{% endblock %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Пытаемся найти бургер (есть только в list.html и chats/list.html)
-    const burger = document.getElementById('mobile-burger-btn');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const body = document.body;
-
-    // Проверяем, есть ли кнопка бургера на этой странице
-    if (burger && sidebar) {
-        console.log('✅ Бургер найден, инициализация');
-        
-        burger.addEventListener('click', function(e) {
-            e.stopPropagation();
-            sidebar.classList.toggle('open');
-            if (overlay) overlay.classList.toggle('active');
-            body.classList.toggle('no-scroll');
-            console.log('Клик сработал, класс open переключен');
-        });
-
-        if (overlay) {
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('open');
-                overlay.classList.remove('active');
-                body.classList.remove('no-scroll');
-            });
-        }
-    } else {
-        console.log('ℹ️ Бургер не найден (скорее всего, это страница чата)');
-    }
-});
-</script>
 
     <div id="image-lightbox" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 99999; justify-content: center; align-items: center;">
         <span class="close-lightbox" style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none;">&times;</span>
