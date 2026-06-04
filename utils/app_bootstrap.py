@@ -147,8 +147,14 @@ def ensure_platform_creator_setup() -> bool:
 
 def run_startup_bootstrap() -> None:
     """Идемпотентная инициализация БД при старте воркера."""
+    print('[bootstrap] run_startup_bootstrap: start', flush=True)
     try:
-        seed_cities_if_empty()
-        ensure_platform_creator_setup()
+        added = seed_cities_if_empty()
+        print(f'[bootstrap] cities seed: added={added}, total={City.query.count()}', flush=True)
+        ok = ensure_platform_creator_setup()
+        print(f'[bootstrap] creator setup: ok={ok}', flush=True)
     except Exception as exc:
+        print(f'[bootstrap] run_startup_bootstrap failed: {exc}', flush=True)
         logger.warning('run_startup_bootstrap failed: %s', exc, exc_info=True)
+        raise
+    print('[bootstrap] run_startup_bootstrap: done', flush=True)
