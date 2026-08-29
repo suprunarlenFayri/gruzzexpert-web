@@ -6,7 +6,10 @@ import os
 
 from models import City, User, Workspace, WorkspaceMember, db
 from utils.invite_utils import DEFAULT_WORKSPACE_ID, generate_invite_key
-from utils.workspace_utils import DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+from utils.workspace_utils import (
+    DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT,
+    FLAGSHIP_ADMIN_LIMIT_DB,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,15 @@ def _find_creator_user():
     return User.query.filter_by(role='creator').order_by(User.id.asc()).first()
 
 
+def _normalize_workspace_admin_limit(workspace: Workspace) -> None:
+    """admin_limit NOT NULL в PostgreSQL — флагман хранит заглушку, лимит снимается в коде."""
+    if int(workspace.id) == DEFAULT_WORKSPACE_ID:
+        if workspace.admin_limit is None or int(workspace.admin_limit) < FLAGSHIP_ADMIN_LIMIT_DB:
+            workspace.admin_limit = FLAGSHIP_ADMIN_LIMIT_DB
+    elif workspace.admin_limit is None:
+        workspace.admin_limit = DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+
+
 def _ensure_flagship_workspace(creator: User) -> Workspace | None:
     ws = Workspace.query.get(DEFAULT_WORKSPACE_ID)
     if ws:
@@ -78,7 +90,7 @@ def _ensure_flagship_workspace(creator: User) -> Workspace | None:
 
     ws = Workspace(
         name=FLAGSHIP_NAME,
-        admin_limit=None,
+        admin_limit=FLAGSHIP_ADMIN_LIMIT_DB,
         invite_key=generate_invite_key(),
         created_by_id=creator.id,
     )
@@ -88,10 +100,11 @@ def _ensure_flagship_workspace(creator: User) -> Workspace | None:
 
 
 def _ensure_workspace_member(creator: User, workspace: Workspace) -> None:
-    member = WorkspaceMember.query.filter_by(
-        user_id=creator.id,
-        workspace_id=workspace.id,
-    ).first()
+    with db.session.no_autoflush:
+        member = WorkspaceMember.query.filter_by(
+            user_id=creator.id,
+            workspace_id=workspace.id,
+        ).first()
     if member:
         if member.role != 'creator':
             member.role = 'creator'
@@ -118,11 +131,7 @@ def ensure_platform_creator_setup() -> bool:
             logger.warning('Bootstrap: не удалось создать workspace')
             return False
 
-        if int(workspace.id) == DEFAULT_WORKSPACE_ID:
-            if workspace.admin_limit is not None:
-                workspace.admin_limit = None
-        elif workspace.admin_limit is None:
-            workspace.admin_limit = DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+        _normalize_workspace_admin_limit(workspace)
 
         changed = False
         if user.role != 'creator':

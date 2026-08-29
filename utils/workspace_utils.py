@@ -11,8 +11,8 @@ DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT = 5
 MAX_WORKSPACE_ADMIN_LIMIT = 100
 MIN_WORKSPACE_ADMIN_LIMIT = 1
 
-# Обратная совместимость импортов
-DEFAULT_WORKSPACE_ADMIN_LIMIT = DEFAULT_CLIENT_WORKSPACE_ADMIN_LIMIT
+# В БД хранится число (NOT NULL); для флагмана лимит не применяется в коде (id=1).
+FLAGSHIP_ADMIN_LIMIT_DB = 9999
 
 
 def is_platform_admin(user):
